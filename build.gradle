@@ -1,0 +1,19 @@
+group 'tower-defense'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'org.testng', name: 'testng', version: '6.11'
+
+    compile 'com.google.guava:guava:23.0'
+
+    compile 'de.jensd:fontawesomefx-commons:9.0.0'
+}
