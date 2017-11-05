@@ -32,8 +32,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target> {
 
             @Override
             public void accept(Target target) {
-                Path path = paths.get(currentPath++ % paths.size()).copy();
-                target.setPath(path);
+                target.setPath(paths.get(currentPath++ % paths.size()).copy());
                 target.add(Wave.this);
             }
         });

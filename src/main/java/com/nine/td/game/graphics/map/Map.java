@@ -14,6 +14,7 @@ import com.nine.td.game.playable.Engine;
 import com.nine.td.game.playable.Target;
 import javafx.animation.AnimationTimer;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.transform.Scale;
 
@@ -24,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -31,7 +33,7 @@ import java.util.stream.Stream;
 import static com.nine.td.GameConstants.*;
 
 public final class Map implements HasRendering, Engine {
-    private Group root;
+    private Node root;
 
     private char[][] grid;
     private List<Wave> waves;
@@ -73,16 +75,13 @@ public final class Map implements HasRendering, Engine {
     }
 
     @Override
-    public Group render() throws Exception {
+    public Node render() {
         if (this.root == null) {
-            double scaleX = this.scale.getX();
-            double scaleY = this.scale.getY();
-
             int rows = this.grid.length;
             int columns = this.grid[0].length;
 
-            double canvasWidth = REQUIRED_SIZE * scaleX * columns;
-            double canvasHeight = REQUIRED_SIZE * scaleY * rows;
+            double canvasWidth = REQUIRED_SIZE * this.scale.getX() * columns;
+            double canvasHeight = REQUIRED_SIZE * this.scale.getY() * rows;
 
             Canvas canvas = new Canvas(canvasWidth, canvasHeight);
             this.targetsCanvas = new Canvas(canvasWidth, canvasHeight);
@@ -98,7 +97,7 @@ public final class Map implements HasRendering, Engine {
                         canvas
                                 .getGraphicsContext2D()
                                 .drawImage(
-                                        component.draw(scale),
+                                        component.draw(this.scale),
                                         component.getPosition().getX(),
                                         component.getPosition().getY()
                                 );
@@ -110,85 +109,87 @@ public final class Map implements HasRendering, Engine {
         return this.root;
     }
 
-    public Map reload() throws IOException {
+    public Map reload() {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(this.name), "bad filename");
         Preconditions.checkArgument(scale != null, "null scale");
 
         Path pathMap = GamePaths.MAPS.resolve(this.name);
 
-        //general compute
-        List<String> matrix = Files
-                .lines(Objects.requireNonNull(pathMap.resolve(MAP_DEFINITION), "null map definition path"))
-                .filter(line -> !line.isEmpty())
-                .collect(Collectors.toList());
+        try {
+            //general compute
+            List<String> matrix = Files
+                    .lines(Objects.requireNonNull(pathMap.resolve(MAP_DEFINITION), "null map definition path"))
+                    .filter(line -> !line.isEmpty())
+                    .collect(Collectors.toList());
 
-        Preconditions.checkState(matrix.size() > 1, "bad map definition");
+            Preconditions.checkState(matrix.size() > 1, "bad map definition");
 
-        List<String> mapDefinition = matrix
-                .stream()
-                .filter(line -> !line.startsWith(PATH_PREFIX))
-                .collect(Collectors.toList());
+            java.util.Map<Boolean, List<String>> partition = matrix.stream().collect(Collectors.partitioningBy(line -> line.startsWith(PATH_PREFIX)));
 
-        List<String> pathsDefinition = matrix
-                .stream()
-                .filter(line -> line.startsWith(PATH_PREFIX))
-                .map(path -> path.substring(PATH_PREFIX.length()))
-                .map(line -> line.replace(" ", ""))
-                .collect(Collectors.toList());
+            List<String> mapDefinition = partition.get(false);
 
-        List<String> wavesDefinition = Files
-                .lines(Objects.requireNonNull(pathMap.resolve(WAVES_DEFINITION), "null waves definition path"))
-                .filter(line -> !line.isEmpty())
-                .map(line -> line.replace("\\s+", ""))
-                .collect(Collectors.toList());
+            List<String> pathsDefinition = partition.get(true)
+                    .stream()
+                    .map(path -> path.substring(PATH_PREFIX.length()))
+                    .map(line -> line.replace(" ", ""))
+                    .collect(Collectors.toList());
 
-        //check map data validity
-        Preconditions.checkState(mapDefinition.size() > 1, "bad map matrix");
-        Preconditions.checkState(pathsDefinition.size() >= 1, "bad paths definition");
-        Preconditions.checkState(wavesDefinition.size() >= 1, "bad waves definition");
-        Preconditions.checkState(mapDefinition.stream().allMatch(row -> row.length() == matrix.get(0).length()), "bad map definition");
-        Preconditions.checkState(pathsDefinition.stream().allMatch(PATH_LIST_PATTERN.asPredicate()), "bad paths definition [format = x:y:direction (N, E, S, W), ...");
-        Preconditions.checkState(wavesDefinition.stream().allMatch(WAVE_LIST_PATTERN.asPredicate()), "bad waves definition [format = how much:img_name:life:shield:speed, ...]");
+            List<String> wavesDefinition = Files
+                    .lines(Objects.requireNonNull(pathMap.resolve(WAVES_DEFINITION), "null waves definition path"))
+                    .filter(line -> !line.isEmpty())
+                    .map(line -> line.replace("\\s+", ""))
+                    .collect(Collectors.toList());
 
-        //Map definition
-        this.grid = mapDefinition.stream().map(String::toCharArray).toArray(char[][]::new);
+            //check map data validity
+            Preconditions.checkState(mapDefinition.size() > 1, "bad map matrix");
+            Preconditions.checkState(pathsDefinition.size() >= 1, "bad paths definition");
+            Preconditions.checkState(wavesDefinition.size() >= 1, "bad waves definition");
+            Preconditions.checkState(mapDefinition.stream().allMatch(row -> row.length() == matrix.get(0).length()), "bad map definition");
+            Preconditions.checkState(pathsDefinition.stream().allMatch(PATH_LIST_PATTERN.asPredicate()), "bad paths definition [format = x:y:direction (N, E, S, W), ...");
+            Preconditions.checkState(wavesDefinition.stream().allMatch(WAVE_LIST_PATTERN.asPredicate()), "bad waves definition [format = how much:img_name:life:shield:speed, ...]");
 
-        //waves compute
-        this.waves = parseWaves(wavesDefinition, parsePaths(pathsDefinition, this.scale, this.grid.length, this.grid[0].length));
+            //Map definition
+            this.grid = mapDefinition.stream().map(String::toCharArray).toArray(char[][]::new);
 
-        this.animationTimer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                targetsCanvas.getGraphicsContext2D().clearRect(0, 0, targetsCanvas.getWidth(), targetsCanvas.getHeight());
+            //waves compute
+            this.waves = parseWaves(wavesDefinition, parsePaths(pathsDefinition, this.scale, this.grid));
 
-                Optional<Wave> maybeWave = getCurrentWave();
+            this.animationTimer = new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    targetsCanvas.getGraphicsContext2D().clearRect(0, 0, targetsCanvas.getWidth(), targetsCanvas.getHeight());
 
-                maybeWave
-                        .ifPresent(wave -> {
-                            wave
-                                    .get()
-                                    .stream()
-                                    .filter(target -> target.getPosition() != null)
-                                    .forEach(target -> targetsCanvas
-                                            .getGraphicsContext2D()
-                                            .drawImage(
-                                                    target.draw(scale),
-                                                    target.getPosition().getX(),
-                                                    target.getPosition().getY()
-                                            )
-                                    );
+                    Optional<Wave> maybeWave = getCurrentWave();
 
-                            if(wave.isEnded()) {
-                                Map.this.stop();
-                            }
-                        });
-            }
-        };
+                    maybeWave
+                            .ifPresent(wave -> {
+                                wave
+                                        .get()
+                                        .stream()
+                                        .filter(target -> target.getPosition() != null)
+                                        .forEach(target -> targetsCanvas
+                                                .getGraphicsContext2D()
+                                                .drawImage(
+                                                        target.draw(scale),
+                                                        target.getPosition().getX(),
+                                                        target.getPosition().getY()
+                                                )
+                                        );
 
-        return this.loadMeta(pathMap);
+                                if (wave.isEnded()) {
+                                    Map.this.stop();
+                                }
+                            });
+                }
+            };
+
+            return this.loadMeta(pathMap);
+        } catch(IOException e) {
+            throw new RuntimeException("Error loading map " + this.name + " : " + e.getMessage());
+        }
     }
 
-    public static Map load(String fileName, Scale scale) throws IOException {
+    public static Map load(String fileName, Scale scale) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(fileName), "bad filename");
         Preconditions.checkArgument(scale != null, "null scale");
 
@@ -253,9 +254,13 @@ public final class Map implements HasRendering, Engine {
         }).collect(Collectors.toList());
     }
 
-    private static List<com.nine.td.game.path.Path> parsePaths(List<String> pathsDefinition, Scale scale, int rows, int columns) {
+    private static List<com.nine.td.game.path.Path> parsePaths(List<String> pathsDefinition, Scale scale, char[][] grid) {
         double scaleX = scale.getX();
         double scaleY = scale.getY();
+
+        int rows = grid.length;
+        int columns = grid[0].length;
+
         double canvasWidth  = REQUIRED_SIZE * scaleX * columns;
         double canvasHeight = REQUIRED_SIZE * scaleY * rows;
 

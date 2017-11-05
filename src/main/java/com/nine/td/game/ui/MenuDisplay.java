@@ -5,9 +5,12 @@ import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 
+import java.util.List;
+
 public interface MenuDisplay extends HasRendering {
-    void addStyle(String styleName);
-    void addMap(String mapName);
+    void setStyles(List<String> styleList);
+    void setMaps(List<String> mapList);
     void onMapSelected(ChangeListener<String> mapSelectedHandler);
     void onGameStart(EventHandler<ActionEvent> handler);
+    void onThemeSwitch(ChangeListener<String> styleChangedHandler);
 }

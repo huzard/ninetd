@@ -1,7 +1,7 @@
 package com.nine.td.game;
 
-import javafx.scene.Group;
+import javafx.scene.Node;
 
 public interface HasRendering {
-    Group render() throws Exception;
+    Node render();
 }
