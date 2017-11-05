@@ -21,7 +21,7 @@ public final class Position implements Serializable {
         return x;
     }
 
-    public Position setX(int x) {
+    public Position setX(double x) {
         this.x = x;
         return this;
     }
@@ -30,7 +30,7 @@ public final class Position implements Serializable {
         return y;
     }
 
-    public Position setY(int y) {
+    public Position setY(double y) {
         this.y = y;
         return this;
     }

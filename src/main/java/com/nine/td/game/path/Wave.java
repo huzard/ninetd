@@ -1,23 +1,22 @@
 package com.nine.td.game.path;
 
 import com.google.common.base.Preconditions;
-import com.nine.td.game.playable.Contains;
-import com.nine.td.game.playable.Engine;
-import com.nine.td.game.playable.Observer;
-import com.nine.td.game.playable.Target;
+import com.nine.td.game.playable.*;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.util.Duration;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class Wave implements Engine, Contains<Target>, Observer<Target> {
+public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVariableSpeed {
     private final List<Target> targets = new CopyOnWriteArrayList<>();
+    private Timeline startScheduler;
 
     public Wave(List<Target> targets, List<Path> paths) {
         Preconditions.checkArgument(targets != null, "null targets");
@@ -36,29 +35,34 @@ public class Wave implements Engine, Contains<Target>, Observer<Target> {
                 target.add(Wave.this);
             }
         });
+
+        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(500L), new EventHandler<ActionEvent>() {
+            int currentTarget = 0;
+
+            @Override
+            public void handle(ActionEvent event) {
+                targets.get(currentTarget++).start();
+            }
+        }));
+
+        this.startScheduler.setCycleCount(this.targets.size());
     }
 
     @Override
     public void start() {
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(this.targets.size());
-
-        this.targets.forEach(new Consumer<Target>() {
-            long current = 0L;
-
-            @Override
-            public void accept(Target target) {
-                scheduler.schedule(target::start, (current = current + 500L), TimeUnit.MILLISECONDS);
-            }
-        });
+        this.startScheduler.play();
+        this.targets.stream().filter(Target::hasMoved).forEach(Target::start);
     }
 
     @Override
     public void stop() {
+        this.startScheduler.stop();
         this.targets.forEach(Engine::stop);
     }
 
     @Override
     public void pause() {
+        this.startScheduler.pause();
         this.targets.forEach(Engine::pause);
     }
 
@@ -84,7 +88,8 @@ public class Wave implements Engine, Contains<Target>, Observer<Target> {
         }
     }
 
-    public boolean isEnded() {
-        return this.targets.isEmpty() || this.targets.stream().allMatch(Target::hasReachedEnd);
+    @Override
+    public void changeSpeed(double coeff) {
+        this.targets.forEach(target -> target.changeSpeed(coeff));
     }
 }

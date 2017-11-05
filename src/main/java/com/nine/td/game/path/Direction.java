@@ -1,5 +1,7 @@
 package com.nine.td.game.path;
 
+import com.google.common.base.Preconditions;
+
 import java.io.Serializable;
 
 /**
@@ -43,5 +45,11 @@ public enum Direction implements Serializable {
         }
 
         throw new IllegalArgumentException(String.format("Unrecognized direction : %c. Required one among N, E, S, or W.", value));
+    }
+
+    public void move(Position position) {
+        Preconditions.checkArgument(position != null, "null position");
+        position.setX(position.getX() + this.getXShift());
+        position.setY(position.getY() + this.getYShift());
     }
 }

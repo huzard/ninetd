@@ -3,6 +3,7 @@ package com.nine.td;
 import java.util.regex.Pattern;
 
 public interface GameConstants {
+    int ANIMATION_TARGET_TIMER      = 40;
     int REQUIRED_SIZE               = 24;
     String DEFAULT_STYLE            = "Par défaut";
     String MAP_DEFINITION           = "setup.txt";

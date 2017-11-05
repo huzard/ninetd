@@ -39,14 +39,6 @@ public class GraphicComponent implements HasPosition {
         );
     }
 
-    public Image draw(double scaleX, double scaleY) {
-        return draw(new Scale(scaleX, scaleY));
-    }
-
-    public Image draw() {
-        return draw(1.0, 1.0);
-    }
-
     @Override
     public Position getPosition() {
         return this.position;

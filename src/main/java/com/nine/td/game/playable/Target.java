@@ -1,40 +1,91 @@
 package com.nine.td.game.playable;
 
 import com.google.common.base.Preconditions;
-import com.nine.td.game.graphics.GraphicComponent;
-import com.nine.td.game.path.Direction;
-import com.nine.td.game.path.HasDirection;
-import com.nine.td.game.path.Path;
-import com.nine.td.game.path.Position;
+import com.nine.td.GamePaths;
+import com.nine.td.game.HasRendering;
+import com.nine.td.game.path.*;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.scene.Group;
+import javafx.scene.Node;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 
+import java.nio.file.Files;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Supplier;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.nine.td.GameConstants.ANIMATION_TARGET_TIMER;
+import static com.nine.td.GameConstants.REQUIRED_SIZE;
 
 /**
  * Représente une cible
  */
-public class Target extends GraphicComponent implements HasDirection, Engine, Contains<Observer<Target>>, HasPath {
+public class Target implements HasRendering, HasPosition, HasDirection, Engine, Contains<Observer<Target>>, HasPath, HasVariableSpeed {
     private         Direction direction;
     protected       Position position = null;
     private         int life;
     private         int shield;
     private         int speed;
     protected       Path path;
-    private         Timeline timeline;
+    private         Timeline movementTimeline;
+    private         Timeline animationTimeline;
     private final   List<Observer<Target>> observers = new CopyOnWriteArrayList<>();
-    private boolean hasReachedEnd = false;
+    private final   List<ImageView> images = new LinkedList<>();
+    private         boolean hasReachedEnd = false;
+    private final   Group imgContainer = new Group();
 
-    public Target(Supplier<java.nio.file.Path> imgSupplier, int life, int shield, int speed) {
-        super(imgSupplier);
+    private int     currentImg = 0;
+
+    public Target(Scale scale, java.nio.file.Path imgPath, int life, int shield, int speed) {
         this.setLife(life);
         this.setShield(shield);
         this.setSpeed(speed);
+        this.setMovementTimeline(speed);
+        this.loadImages(scale, imgPath);
+
+        this.imgContainer.setVisible(false);
+
+        this.animationTimeline = new Timeline(new KeyFrame(Duration.millis(ANIMATION_TARGET_TIMER), irrelevant -> {
+            this.imgContainer.getChildren().setAll(this.images.get(this.currentImg++ % this.images.size()));
+        }));
+
+        this.animationTimeline.setCycleCount(Animation.INDEFINITE);
+    }
+
+    private void loadImages(Scale scale, java.nio.file.Path path) {
+        this.images.clear();
+
+        Function<java.nio.file.Path, ImageView> transform = p -> new ImageView(new Image(
+                String.format("file:///%s", p),
+                REQUIRED_SIZE * scale.getX(),
+                REQUIRED_SIZE * scale.getY(),
+                false,
+                true)
+        );
+
+        Preconditions.checkState(path.toFile().exists(), "Invalid path to images : " + path);
+
+        if(path.toFile().isDirectory()) {
+            try {
+                this.images.addAll(Files.list(path).map(transform).collect(Collectors.toList()));
+            } catch(Exception e) {
+                loadImages(scale, GamePaths.RESOURCES.resolve("null.png"));
+            }
+        } else {
+            this.images.add(transform.apply(path));
+        }
+
+        Preconditions.checkState(!this.images.isEmpty(), "Invalid path to images : " + path);
+
+        this.imgContainer.getChildren().setAll(this.images.get(this.currentImg));
     }
 
     @Override
@@ -62,40 +113,26 @@ public class Target extends GraphicComponent implements HasDirection, Engine, Co
         Preconditions.checkState(this.path != null, "null path");
         Preconditions.checkState(this.path.isValid(), "invalid path");
 
-        if(this.timeline == null) {
+        if(this.position == null) {
             this.position = this.path.getStart().getPosition();
             this.direction = this.path.getStart().getDirection();
-
-            this.timeline = new Timeline(new KeyFrame(Duration.millis(this.speed), irrelevant -> {
-                observers.forEach(observer -> observer.check(Target.this));
-
-                if(isDown() || hasReachedEnd) {
-                    stop();
-                } else {
-                    position.move(Target.this.direction);
-                    path.accept(Target.this);
-                    if(path.getEnd().getPosition().equals(position)) {
-                        hasReachedEnd = true;
-                    }
-                }
-            }));
-
-            this.timeline.setCycleCount(Animation.INDEFINITE);
         }
 
-        this.timeline.play();
+        this.movementTimeline.play();
+        this.animationTimeline.play();
     }
 
     @Override
     public void stop() {
-        if(this.timeline != null) {
-            this.timeline.stop();
-        }
+        this.movementTimeline.stop();
+        this.animationTimeline.stop();
+        this.currentImg = 0;
     }
 
     @Override
     public void pause() {
-        this.timeline.pause();
+        this.movementTimeline.pause();
+        this.animationTimeline.pause();
     }
 
     @Override
@@ -160,5 +197,54 @@ public class Target extends GraphicComponent implements HasDirection, Engine, Co
 
     public boolean hasReachedEnd() {
         return this.hasReachedEnd;
+    }
+
+    public boolean hasMoved() {
+        return this.position != null;
+    }
+
+    @Override
+    public void changeSpeed(double coeff) {
+        this.setMovementTimeline(this.speed / coeff);
+        if(hasMoved()) {
+            start();
+        }
+    }
+
+    private void setMovementTimeline(double speed) {
+        Preconditions.checkArgument(speed > 0, "invalid speed");
+
+        if(this.movementTimeline != null) {
+            this.movementTimeline.stop();
+        }
+
+        this.movementTimeline = new Timeline(new KeyFrame(Duration.millis(speed), irrelevant -> {
+            this.observers.forEach(observer -> observer.check(Target.this));
+
+            if(isDown() || this.hasReachedEnd) {
+                stop();
+                this.imgContainer.getChildren().clear();
+            } else {
+                this.direction.move(this.position);
+                this.imgContainer.relocate(this.position.getX(), this.position.getY());
+
+                if(!this.imgContainer.isVisible()) {
+                    this.imgContainer.setVisible(true);
+                }
+
+                this.path.accept(Target.this);
+
+                if(this.path.getEnd().getPosition().equals(this.position)) {
+                    this.hasReachedEnd = true;
+                }
+            }
+        }));
+
+        this.movementTimeline.setCycleCount(Animation.INDEFINITE);
+    }
+
+    @Override
+    public Node render() {
+        return this.imgContainer;
     }
 }

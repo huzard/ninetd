@@ -1,22 +1,23 @@
 package com.nine.td.game.playable.unit;
 
+import com.google.common.base.Preconditions;
 import com.nine.td.game.path.HasPosition;
 import com.nine.td.game.path.Position;
-import com.nine.td.game.playable.Bonus;
-import com.nine.td.game.playable.Engine;
-import com.nine.td.game.playable.Shooter;
-import com.nine.td.game.playable.Target;
+import com.nine.td.game.playable.*;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Représente une unité de combat
  */
-public abstract class Unit implements HasPosition, Shooter, Engine {
+public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, Engine {
     private static final long MAX_DELAY = 1400L;
 
     protected Position position;
@@ -32,6 +33,7 @@ public abstract class Unit implements HasPosition, Shooter, Engine {
         this.range = range;
         this.shootingRate = shootingRate;
         this.power = power;
+        this.setTimeline(this.shootingRate);
     }
 
     @Override
@@ -73,15 +75,7 @@ public abstract class Unit implements HasPosition, Shooter, Engine {
 
     @Override
     public void start() {
-        if(this.shootingTimer == null) {
-            this.shootingTimer = new Timeline(new KeyFrame(Duration.millis(this.delay()), irrelevant -> getNearestTarget().ifPresent(target -> {
-                shoot(target);
-                target.check();
-            })));
-
-            this.shootingTimer.setCycleCount(Animation.INDEFINITE);
-            this.shootingTimer.play();
-        }
+        this.shootingTimer.play();
     }
 
     @Override
@@ -107,27 +101,17 @@ public abstract class Unit implements HasPosition, Shooter, Engine {
         return this.targets
                 .stream()
                 .min((t1, t2) -> Double.compare(t1.getPosition().distanceWith(this.getPosition()), t2.getPosition().distanceWith(this.position)));
-
     }
 
     /**
      * Récupère le temps d'attente entre deux exécution d'actions
      */
     private long delay() {
-        return MAX_DELAY - (long) (this.getShootingRate() * 1000);
+        return MAX_DELAY - (long) (this.shootingRate * 1000);
     }
 
     private boolean canReach(Target target) {
         return this.position.distanceWith(target.getPosition()) <= this.range;
-    }
-
-    private double getShootingRate() {
-        return Double.max(this.shootingRate, 1.0);
-    }
-
-    public Unit setShootingRate(double shootingRate) {
-        this.shootingRate = Double.max(shootingRate, 1.0);
-        return this;
     }
 
     public int getRange() {
@@ -146,5 +130,26 @@ public abstract class Unit implements HasPosition, Shooter, Engine {
     public Unit setPower(int power) {
         this.power = Integer.max(0, power);
         return this;
+    }
+
+    @Override
+    public void changeSpeed(double coeff) {
+        this.setTimeline(this.shootingRate / coeff);
+        start();
+    }
+
+    private void setTimeline(double speed) {
+        Preconditions.checkArgument(speed > 0, "require positive speed");
+
+        if(this.shootingTimer != null) {
+            this.shootingTimer.stop();
+        }
+
+        this.shootingTimer = new Timeline(new KeyFrame(Duration.millis(this.delay()), irrelevant -> getNearestTarget().ifPresent(target -> {
+            shoot(target);
+            target.check();
+        })));
+
+        this.shootingTimer.setCycleCount(Animation.INDEFINITE);
     }
 }

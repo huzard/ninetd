@@ -11,8 +11,8 @@ import com.nine.td.game.path.Position;
 import com.nine.td.game.path.Wave;
 import com.nine.td.game.path.WayPoint;
 import com.nine.td.game.playable.Engine;
+import com.nine.td.game.playable.HasVariableSpeed;
 import com.nine.td.game.playable.Target;
-import javafx.animation.AnimationTimer;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 
 import static com.nine.td.GameConstants.*;
 
-public final class Map implements HasRendering, Engine {
+public final class Map implements HasRendering, Engine, HasVariableSpeed {
     private Node root;
 
     private char[][] grid;
@@ -41,9 +41,7 @@ public final class Map implements HasRendering, Engine {
     private final Scale scale;
     private final Properties metaProperties;
 
-    private Canvas targetsCanvas;
-
-    private AnimationTimer animationTimer;
+    private Group enemies = new Group();
 
     private Map(String name, Scale scale) {
         this.scale = scale;
@@ -54,23 +52,20 @@ public final class Map implements HasRendering, Engine {
     @Override
     public void start() {
         this.getCurrentWave().ifPresent(wave -> {
+            this.enemies.getChildren().setAll(wave.get().stream().map(HasRendering::render).collect(Collectors.toList()));
             wave.start();
-            animationTimer.start();
         });
     }
 
     @Override
     public void stop() {
-        this.waves.forEach(Engine::stop);
-        if(this.animationTimer != null) {
-            this.animationTimer.stop();
-        }
+        this.getCurrentWave().ifPresent(Engine::stop);
+        this.enemies.getChildren().clear();
     }
 
     @Override
     public void pause() {
-        this.waves.forEach(Engine::pause);
-        this.animationTimer.stop();
+        this.getCurrentWave().ifPresent(Engine::pause);
     }
 
     @Override
@@ -83,7 +78,6 @@ public final class Map implements HasRendering, Engine {
             double canvasHeight = REQUIRED_SIZE * this.scale.getY() * rows;
 
             Canvas canvas = new Canvas(canvasWidth, canvasHeight);
-            this.targetsCanvas = new Canvas(canvasWidth, canvasHeight);
 
             IntStream
                     .range(0, rows)
@@ -102,7 +96,7 @@ public final class Map implements HasRendering, Engine {
                                 );
                     }));
 
-            this.root = new Group(canvas, this.targetsCanvas);
+            this.root = new Group(canvas, this.enemies);
         }
 
         return this.root;
@@ -143,36 +137,7 @@ public final class Map implements HasRendering, Engine {
             this.grid = mapDefinition.stream().map(String::toCharArray).toArray(char[][]::new);
 
             //waves compute
-            this.waves = parseWaves(wavesDefinition, parsePaths(pathsDefinition, this.scale, this.grid));
-
-            this.animationTimer = new AnimationTimer() {
-                @Override
-                public void handle(long now) {
-                    targetsCanvas.getGraphicsContext2D().clearRect(0, 0, targetsCanvas.getWidth(), targetsCanvas.getHeight());
-
-                    Optional<Wave> maybeWave = getCurrentWave();
-
-                    maybeWave
-                            .ifPresent(wave -> {
-                                wave
-                                        .get()
-                                        .stream()
-                                        .filter(target -> target.getPosition() != null)
-                                        .forEach(target -> targetsCanvas
-                                                .getGraphicsContext2D()
-                                                .drawImage(
-                                                        target.draw(scale),
-                                                        target.getPosition().getX(),
-                                                        target.getPosition().getY()
-                                                )
-                                        );
-
-                                if (wave.isEnded()) {
-                                    Map.this.stop();
-                                }
-                            });
-                }
-            };
+            this.waves = parseWaves(wavesDefinition, parsePaths(pathsDefinition, this.scale, this.grid), this.scale);
 
             return this.loadMeta(pathMap);
         } catch(IOException e) {
@@ -218,7 +183,7 @@ public final class Map implements HasRendering, Engine {
         return this.waves.isEmpty() ? Optional.empty() : Optional.of(this.waves.get(0));
     }
 
-    private static List<Wave> parseWaves(List<String> wavesDefinition, List<com.nine.td.game.path.Path> paths) {
+    private static List<Wave> parseWaves(List<String> wavesDefinition, List<com.nine.td.game.path.Path> paths, Scale scale) {
         Function<String, List<Target>> toTarget = string -> {
             //format = count:imgName:life:shield:speed
             String[] data = string.split(DATA_SEPARATOR);
@@ -235,7 +200,7 @@ public final class Map implements HasRendering, Engine {
             Preconditions.checkState(speed > 0,     "require speed > 0 (found " + speed + ")");
 
             return Stream
-                    .generate(() -> new Target(() -> GamePaths.ENEMIES.resolve(imgName), life, shield, speed))
+                    .generate(() -> new Target(scale, GamePaths.ENEMIES.resolve(imgName), life, shield, speed))
                     .limit(count)
                     .collect(Collectors.toList());
         };
@@ -290,5 +255,10 @@ public final class Map implements HasRendering, Engine {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public void changeSpeed(double coeff) {
+        this.waves.forEach(wave -> wave.changeSpeed(coeff));
     }
 }

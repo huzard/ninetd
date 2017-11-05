@@ -2,6 +2,7 @@ package com.nine.td;
 
 import com.nine.td.game.graphics.map.Map;
 import com.nine.td.game.playable.Engine;
+import com.nine.td.game.playable.HasVariableSpeed;
 import com.nine.td.game.ui.MenuBar;
 import com.nine.td.game.ui.MenuBarDisplay;
 import com.nine.td.game.ui.Navigation;
@@ -10,7 +11,6 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Group;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.MenuItem;
 import javafx.scene.layout.VBox;
@@ -27,37 +27,41 @@ import static com.nine.td.GameConstants.DEFAULT_STYLE;
 import static com.nine.td.GamePaths.CSS_DIR;
 import static com.nine.td.GamePaths.FILE_SEP;
 
-public class Game implements Engine {
-    private Node root;
+public class Game implements Engine, HasVariableSpeed {
     private final Group mapPreview = new Group();
     private final List<Map> maps = new LinkedList<>();
     private final List<CssStyle> styles = new LinkedList<>();
 
     private String currentMapName;
-    private NavigationDisplay navigation;
-    private MenuBarDisplay menuBar;
-    private Scene scene;
 
-    private static GameState STATE = GameState.STOPPED;
+    private final NavigationDisplay navigation;
+    private final MenuBarDisplay menuBar;
+    private final Scene scene;
+
+    private final List<Runnable> onGameStarted  = new LinkedList<>();
+    private final List<Runnable> onGamePaused   = new LinkedList<>();
+    private final List<Runnable> onGameStopped  = new LinkedList<>();
 
     private static Game instance = null;
 
     private Game() {
         this.navigation = new Navigation();
         this.menuBar = new MenuBar();
-        this.scene = new Scene(new VBox(this.menuBar.render(), this.navigation.render(), this.mapPreview));
+        this.scene = new Scene(new Group());
     }
 
     public static Game getInstance() {
-        if(instance == null) {
-            try {
-                instance = createGame();
-            } catch (Exception e) {
-                throw new RuntimeException("Error creating game");
+        synchronized(Game.class) {
+            if(instance == null) {
+                try {
+                    instance = createGame();
+                } catch (Exception e) {
+                    throw new RuntimeException("Error creating game", e);
+                }
             }
-        }
 
-        return instance;
+            return instance;
+        }
     }
 
     private static Game createGame() throws Exception {
@@ -84,23 +88,24 @@ public class Game implements Engine {
 
     @Override
     public void start() {
-        this.getCurrentMap().reload().start();
-        STATE = GameState.RUNNING;
+        this.getCurrentMap().start();
+        this.onGameStarted.forEach(Runnable::run);
     }
 
     @Override
     public void pause() {
         this.getCurrentMap().pause();
-        STATE = GameState.PAUSED;
+        this.onGamePaused.forEach(Runnable::run);
     }
 
     @Override
     public void stop() {
-        this.getCurrentMap().stop();
-        STATE = GameState.STOPPED;
+        this.getCurrentMap().reload().stop();
+        this.onGameStopped.forEach(Runnable::run);
     }
 
     public Scene getScene() {
+        this.scene.setRoot(new VBox(this.menuBar.render(), this.navigation.render(), this.mapPreview));
         return this.scene;
     }
 
@@ -164,5 +169,26 @@ public class Game implements Engine {
         System.exit(0);
     }
 
-    enum GameState { RUNNING, PAUSED, STOPPED; }
+    public void onGameStarted(Runnable onGameStarted) {
+        if(onGameStarted != null) {
+            this.onGameStarted.add(onGameStarted);
+        }
+    }
+
+    public void onGamePaused(Runnable onGamePaused) {
+        if(onGamePaused != null) {
+            this.onGamePaused.add(onGamePaused);
+        }
+    }
+
+    public void onGameStopped(Runnable onGameStopped) {
+        if(onGameStopped != null) {
+            this.onGameStopped.add(onGameStopped);
+        }
+    }
+
+    @Override
+    public void changeSpeed(double coeff) {
+        this.getCurrentMap().changeSpeed(coeff);
+    }
 }
