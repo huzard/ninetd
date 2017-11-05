@@ -8,8 +8,6 @@ import com.nine.td.game.ui.MenuBarDisplay;
 import com.nine.td.game.ui.Navigation;
 import com.nine.td.game.ui.NavigationDisplay;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.MenuItem;
@@ -32,8 +30,6 @@ public class Game implements Engine, HasVariableSpeed {
     private final List<Map> maps = new LinkedList<>();
     private final List<CssStyle> styles = new LinkedList<>();
 
-    private String currentMapName;
-
     private final NavigationDisplay navigation;
     private final MenuBarDisplay menuBar;
     private final Scene scene;
@@ -43,6 +39,10 @@ public class Game implements Engine, HasVariableSpeed {
     private final List<Runnable> onGameStopped  = new LinkedList<>();
 
     private static Game instance = null;
+
+    private String currentMapName;
+
+    private Runnable gameSceneResizedEventHandler = () -> {};
 
     private Game() {
         this.navigation = new Navigation();
@@ -78,7 +78,6 @@ public class Game implements Engine, HasVariableSpeed {
 
         //setting handlers
         game.navigation.onMapSelected((observable, oldValue, newValue) -> game.setMap(newValue));
-
         game.menuBar.onThemeSwitch(event -> game.setStyle(((MenuItem) event.getSource()).getText()));
 
         game.setStyle(DEFAULT_STYLE);
@@ -104,13 +103,20 @@ public class Game implements Engine, HasVariableSpeed {
         this.onGameStopped.forEach(Runnable::run);
     }
 
+    @Override
+    public void changeSpeed(double coeff) {
+        this.getCurrentMap().changeSpeed(coeff);
+    }
+
     public Scene getScene() {
         this.scene.setRoot(new VBox(this.menuBar.render(), this.navigation.render(), this.mapPreview));
         return this.scene;
     }
 
-    public void onSceneUpdate(EventHandler<ActionEvent> handler) {
-        this.menuBar.onThemeSwitch(handler);
+    public void onSceneUpdate(Runnable handler) {
+        if(handler != null) {
+            this.gameSceneResizedEventHandler = handler;
+        }
     }
 
     private void setMaps(List<String> maps) {
@@ -122,6 +128,7 @@ public class Game implements Engine, HasVariableSpeed {
     private void setMap(String mapName) {
         this.currentMapName = mapName;
         this.mapPreview.getChildren().setAll(this.getMap(mapName).render());
+        this.fireEvent();
     }
 
     private Map getMap(String mapName) {
@@ -154,6 +161,8 @@ public class Game implements Engine, HasVariableSpeed {
                             .collect(Collectors.toList())
             );
         }
+
+        this.fireEvent();
     }
 
     private CssStyle getStyle(String styleName) {
@@ -165,6 +174,7 @@ public class Game implements Engine, HasVariableSpeed {
     }
 
     public static void exit() {
+        instance.stop();
         Platform.exit();
         System.exit(0);
     }
@@ -187,8 +197,9 @@ public class Game implements Engine, HasVariableSpeed {
         }
     }
 
-    @Override
-    public void changeSpeed(double coeff) {
-        this.getCurrentMap().changeSpeed(coeff);
+    private void fireEvent() {
+        if(this.gameSceneResizedEventHandler != null) {
+            this.gameSceneResizedEventHandler.run();
+        }
     }
 }

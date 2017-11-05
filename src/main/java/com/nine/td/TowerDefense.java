@@ -12,16 +12,14 @@ public class TowerDefense extends Application {
     public void start(Stage primaryStage) throws Exception {
         Game game = Game.getInstance();
 
-        game.onSceneUpdate(event -> primaryStage.sizeToScene());
+        game.onSceneUpdate(primaryStage::sizeToScene);
 
         //Tuning stage
         primaryStage.setTitle("Tower Defense");
         primaryStage.setScene(game.getScene());
         primaryStage.setResizable(false);
-        primaryStage.setOnCloseRequest(e -> {
-            game.stop();
-            Game.exit();
-        });
+        primaryStage.setOnCloseRequest(e -> Game.exit());
+
         primaryStage.show();
         primaryStage.sizeToScene();
         primaryStage.centerOnScreen();
