@@ -196,7 +196,7 @@ public final class Map implements HasRendering, Engine {
         return new Map(fileName, scale).reload();
     }
 
-    public static Map load(String fileName) throws IOException {
+    public static Map load(String fileName) {
         return load(fileName, new Scale(1.0, 1.0));
     }
 

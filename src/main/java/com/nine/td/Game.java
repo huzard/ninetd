@@ -86,16 +86,8 @@ public class Game extends Application implements Engine {
     }
 
     private void setMaps(List<String> maps) {
-        maps.forEach(map -> {
-            try {
-                this.maps.add(Map.load(map));
-            } catch (IOException e) {
-                throw new RuntimeException("Error loading map " + map);
-            }
-        });
-
+        this.maps.addAll(maps.stream().map(Map::load).collect(Collectors.toList()));
         this.menu.setMaps(maps);
-
         this.setMap(this.maps.get(0).getName());
     }
 
