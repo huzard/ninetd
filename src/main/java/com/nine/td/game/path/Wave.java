@@ -1,14 +1,15 @@
 package com.nine.td.game.path;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.nine.td.game.playable.*;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.util.Duration;
 
+import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -36,27 +37,34 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
             }
         });
 
-        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(500L), new EventHandler<ActionEvent>() {
-            int currentTarget = 0;
+        this.restartScheduler();
+    }
 
-            @Override
-            public void handle(ActionEvent event) {
-                targets.get(currentTarget++).start();
-            }
-        }));
+    private void restartScheduler() {
+        if(this.startScheduler != null) {
+            this.startScheduler.stop();
+        }
 
-        this.startScheduler.setCycleCount(this.targets.size());
+        Deque<Target> targetsToStart = Lists.newLinkedList(this.targets);
+
+        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(500L), event -> targetsToStart.poll().start()));
+        this.startScheduler.setCycleCount(targetsToStart.size());
     }
 
     @Override
     public void start() {
-        this.startScheduler.play();
-        this.targets.stream().filter(Target::hasMoved).forEach(Target::start);
+        Map<Boolean, List<Target>> hasMoved =  this.targets.stream().collect(Collectors.partitioningBy(Target::hasMoved));
+
+        if(!hasMoved.get(false).isEmpty()) {
+            this.startScheduler.play();
+        }
+
+        hasMoved.get(true).forEach(Engine::start);
     }
 
     @Override
     public void stop() {
-        this.startScheduler.stop();
+        this.restartScheduler();
         this.targets.forEach(Engine::stop);
     }
 

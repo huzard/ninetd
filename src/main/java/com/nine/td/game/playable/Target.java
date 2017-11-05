@@ -1,6 +1,7 @@
 package com.nine.td.game.playable;
 
 import com.google.common.base.Preconditions;
+import com.nine.td.GameConstants;
 import com.nine.td.GamePaths;
 import com.nine.td.game.HasRendering;
 import com.nine.td.game.path.*;
@@ -22,7 +23,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.nine.td.GameConstants.ANIMATION_TARGET_TIMER;
+import static com.nine.td.GameConstants.ANIMATION_TARGET_SPEED;
 import static com.nine.td.GameConstants.REQUIRED_SIZE;
 
 /**
@@ -48,16 +49,10 @@ public class Target implements HasRendering, HasPosition, HasDirection, Engine, 
         this.setLife(life);
         this.setShield(shield);
         this.setSpeed(speed);
-        this.setMovementTimeline(speed);
         this.loadImages(scale, imgPath);
 
-        this.imgContainer.setVisible(false);
-
-        this.animationTimeline = new Timeline(new KeyFrame(Duration.millis(ANIMATION_TARGET_TIMER), irrelevant -> {
-            this.imgContainer.getChildren().setAll(this.images.get(this.currentImg++ % this.images.size()));
-        }));
-
-        this.animationTimeline.setCycleCount(Animation.INDEFINITE);
+        this.setMovementTimeline(speed);
+        this.setAnimationTimeline(GameConstants.ANIMATION_TARGET_SPEED);
     }
 
     private void loadImages(Scale scale, java.nio.file.Path path) {
@@ -84,8 +79,6 @@ public class Target implements HasRendering, HasPosition, HasDirection, Engine, 
         }
 
         Preconditions.checkState(!this.images.isEmpty(), "Invalid path to images : " + path);
-
-        this.imgContainer.getChildren().setAll(this.images.get(this.currentImg));
     }
 
     @Override
@@ -206,6 +199,8 @@ public class Target implements HasRendering, HasPosition, HasDirection, Engine, 
     @Override
     public void changeSpeed(double coeff) {
         this.setMovementTimeline(this.speed / coeff);
+        this.setAnimationTimeline(ANIMATION_TARGET_SPEED / coeff);
+
         if(hasMoved()) {
             start();
         }
@@ -222,25 +217,36 @@ public class Target implements HasRendering, HasPosition, HasDirection, Engine, 
             this.observers.forEach(observer -> observer.check(Target.this));
 
             if(isDown() || this.hasReachedEnd) {
-                stop();
+                this.stop();
                 this.imgContainer.getChildren().clear();
+                this.imgContainer.setVisible(false);
             } else {
                 this.direction.move(this.position);
                 this.imgContainer.relocate(this.position.getX(), this.position.getY());
 
-                if(!this.imgContainer.isVisible()) {
-                    this.imgContainer.setVisible(true);
-                }
-
                 this.path.accept(Target.this);
 
-                if(this.path.getEnd().getPosition().equals(this.position)) {
+                if (this.path.getEnd().getPosition().equals(this.position)) {
                     this.hasReachedEnd = true;
                 }
             }
         }));
 
         this.movementTimeline.setCycleCount(Animation.INDEFINITE);
+    }
+
+    private void setAnimationTimeline(double speed) {
+        Preconditions.checkArgument(speed > 0, "invalid speed");
+
+        if(this.animationTimeline != null) {
+            this.animationTimeline.stop();
+        }
+
+        this.animationTimeline = new Timeline(new KeyFrame(Duration.millis(speed), irrelevant -> {
+            this.imgContainer.getChildren().setAll(this.images.get(this.currentImg++ % this.images.size()));
+        }));
+
+        this.animationTimeline.setCycleCount(Animation.INDEFINITE);
     }
 
     @Override
