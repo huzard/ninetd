@@ -4,12 +4,13 @@ import java.util.regex.Pattern;
 
 public interface GameConstants {
     int REQUIRED_SIZE               = 24;
-    String MAP_DEFINITION           = "definition.txt";
-    String WAVES_DEFINITION         = "waves.txt";
-    String PROPERTIES_DEFINITION    = "properties.txt";
+    String DEFAULT_STYLE            = "Par défaut";
+    String MAP_DEFINITION           = "setup.txt";
+    String PROPERTIES_DEFINITION    = "properties.properties";
     String DATA_SEPARATOR           = ":";
     String LIST_SEPARATOR           = ",";
     String PATH_PREFIX              = String.format("path%s", DATA_SEPARATOR);
+    String WAVE_PREFIX              = String.format("wave%s", DATA_SEPARATOR);
     String PATH_PATTERN             = String.format("\\d+%s\\d+%s[NESW]", DATA_SEPARATOR, DATA_SEPARATOR);
     String WAVE_PATTERN             = String.format("\\d+%s(?i)(.+)%s\\d+%s\\d+%s\\d+", DATA_SEPARATOR, DATA_SEPARATOR, DATA_SEPARATOR, DATA_SEPARATOR);
     Pattern PATH_LIST_PATTERN       = Pattern.compile(String.format("%s%s%s(%s%s)*", PATH_PATTERN, LIST_SEPARATOR, PATH_PATTERN, LIST_SEPARATOR, PATH_PATTERN));

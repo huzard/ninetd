@@ -4,11 +4,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.nine.td.GamePaths;
 import com.nine.td.game.HasRendering;
-import com.nine.td.game.path.Wave;
 import com.nine.td.game.graphics.Components;
 import com.nine.td.game.graphics.GraphicComponent;
 import com.nine.td.game.path.Direction;
 import com.nine.td.game.path.Position;
+import com.nine.td.game.path.Wave;
 import com.nine.td.game.path.WayPoint;
 import com.nine.td.game.playable.Engine;
 import com.nine.td.game.playable.Target;
@@ -25,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -124,28 +123,20 @@ public final class Map implements HasRendering, Engine {
 
             Preconditions.checkState(matrix.size() > 1, "bad map definition");
 
-            java.util.Map<Boolean, List<String>> partition = matrix.stream().collect(Collectors.partitioningBy(line -> line.startsWith(PATH_PREFIX)));
-
-            List<String> mapDefinition = partition.get(false);
-
-            List<String> pathsDefinition = partition.get(true)
+            java.util.Map<Boolean, List<String>> partition = matrix
                     .stream()
-                    .map(path -> path.substring(PATH_PREFIX.length()))
-                    .map(line -> line.replace(" ", ""))
-                    .collect(Collectors.toList());
+                    .collect(Collectors.partitioningBy(line -> Stream.of(PATH_PREFIX, WAVE_PREFIX).noneMatch(line::startsWith)));
 
-            List<String> wavesDefinition = Files
-                    .lines(Objects.requireNonNull(pathMap.resolve(WAVES_DEFINITION), "null waves definition path"))
-                    .filter(line -> !line.isEmpty())
-                    .map(line -> line.replace("\\s+", ""))
-                    .collect(Collectors.toList());
-
-            //check map data validity
+            List<String> mapDefinition = partition.get(true);
             Preconditions.checkState(mapDefinition.size() > 1, "bad map matrix");
-            Preconditions.checkState(pathsDefinition.size() >= 1, "bad paths definition");
-            Preconditions.checkState(wavesDefinition.size() >= 1, "bad waves definition");
             Preconditions.checkState(mapDefinition.stream().allMatch(row -> row.length() == matrix.get(0).length()), "bad map definition");
+
+            List<String> pathsDefinition = filterBy(PATH_PREFIX, partition.get(false));
+            Preconditions.checkState(pathsDefinition.size() >= 1, "bad paths definition");
             Preconditions.checkState(pathsDefinition.stream().allMatch(PATH_LIST_PATTERN.asPredicate()), "bad paths definition [format = x:y:direction (N, E, S, W), ...");
+
+            List<String> wavesDefinition = filterBy(WAVE_PREFIX, partition.get(false));
+            Preconditions.checkState(wavesDefinition.size() >= 1, "bad waves definition");
             Preconditions.checkState(wavesDefinition.stream().allMatch(WAVE_LIST_PATTERN.asPredicate()), "bad waves definition [format = how much:img_name:life:shield:speed, ...]");
 
             //Map definition
@@ -198,6 +189,15 @@ public final class Map implements HasRendering, Engine {
 
     public static Map load(String fileName) {
         return load(fileName, new Scale(1.0, 1.0));
+    }
+
+    private static List<String> filterBy(String prefix, List<String> values) {
+        return values
+                .stream()
+                .filter(value -> value.startsWith(prefix))
+                .map(value -> value.substring(PATH_PREFIX.length()))
+                .map(value -> value.replace("\\s+", ""))
+                .collect(Collectors.toList());
     }
 
     private Map loadMeta(Path pathMap) {
