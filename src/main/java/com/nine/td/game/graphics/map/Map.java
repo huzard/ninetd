@@ -39,6 +39,9 @@ public final class Map implements HasRendering {
     private final Scale scale;
     private final Properties metaProperties;
 
+    private Canvas drawArea;
+    private final Group enemies = new Group();
+
     private Map(String name, Scale scale) {
         this.scale = scale;
         this.name = name;
@@ -54,17 +57,17 @@ public final class Map implements HasRendering {
             double canvasWidth = REQUIRED_SIZE * this.scale.getX() * columns;
             double canvasHeight = REQUIRED_SIZE * this.scale.getY() * rows;
 
-            Canvas canvas = new Canvas(canvasWidth, canvasHeight);
+            this.drawArea = new Canvas(canvasWidth, canvasHeight);
 
             IntStream
                     .range(0, rows)
                     .forEach(i -> IntStream.range(0, columns).forEach(j -> {
                         GraphicComponent component = Components.get(
                                 this.grid[i][j],
-                                new Position(j * (canvas.getWidth() / columns), i * (canvas.getHeight() / rows))
+                                new Position(j * (drawArea.getWidth() / columns), i * (drawArea.getHeight() / rows))
                         );
 
-                        canvas
+                        drawArea
                                 .getGraphicsContext2D()
                                 .drawImage(
                                         component.draw(this.scale),
@@ -73,10 +76,10 @@ public final class Map implements HasRendering {
                                 );
                     }));
 
-            this.root = new Group();
-            this.root.getChildren().add(canvas);
-            this.root.getChildren().addAll(this.getCurrentWave().get().stream().map(HasRendering::render).collect(Collectors.toList()));
+            this.root = new Group(this.drawArea, this.enemies);
         }
+
+        this.enemies.getChildren().setAll(this.getCurrentWave().get().stream().map(HasRendering::render).collect(Collectors.toList()));
 
         return this.root;
     }
@@ -246,7 +249,7 @@ public final class Map implements HasRendering {
         return Collections.unmodifiableList(this.waves);
     }
 
-    public void loadNextWave() {
-        this.waves.remove(this.getCurrentWave());
+    public boolean removeWave(Wave wave) {
+        return this.waves.remove(wave);
     }
 }

@@ -38,17 +38,16 @@ public class Navigation implements NavigationDisplay {
         if(this.root == null) {
             this.play.setOnAction(event -> Game.getInstance().start());
             this.pause.setOnAction(event -> Game.getInstance().pause());
-            this.stop.setOnAction(event -> {
-                Game.getInstance().stop();
-                Game.getInstance().reload();
-            });
+            this.stop.setOnAction(event -> Game.getInstance().reload());
+
             this.accelerate.setOnAction(event -> Game.getInstance().changeSpeed(2));
             this.normal.setOnAction(event -> Game.getInstance().changeSpeed(1.0));
             this.decelerate.setOnAction(event -> Game.getInstance().changeSpeed(0.5));
 
-            Game.getInstance().onGameStarted(() -> disableNodes(this.play, this.mapList));
-            Game.getInstance().onGamePaused(()  -> disableNodes(this.pause, this.mapList, this.decelerate, this.accelerate, this.normal));
-            Game.getInstance().onGameStopped(() -> disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().addGameEventHandler(Game.GameEvent.START,    () -> this.disableNodes(this.play, this.mapList));
+            Game.getInstance().addGameEventHandler(Game.GameEvent.PAUSE,    () -> this.disableNodes(this.pause, this.mapList, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().addGameEventHandler(Game.GameEvent.STOP,     () -> this.disableNodes(this.pause, this.mapList, this.stop, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().addGameEventHandler(Game.GameEvent.RELOAD,   () -> this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
 
             this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal);
 

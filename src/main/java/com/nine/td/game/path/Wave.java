@@ -3,14 +3,12 @@ package com.nine.td.game.path;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.nine.td.game.playable.*;
+import com.nine.td.game.playable.Observer;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
 
-import java.util.Deque;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -18,7 +16,7 @@ import java.util.stream.Collectors;
 public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVariableSpeed {
     private final List<Target> targets = new CopyOnWriteArrayList<>();
     private Timeline startScheduler;
-    private Runnable onWaveUpdate = () -> {};
+    private final List<Runnable> onWaveUpdate = new LinkedList<>();
 
     public Wave(List<Target> targets, List<Path> paths) {
         Preconditions.checkArgument(targets != null, "null targets");
@@ -43,7 +41,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
 
     @Override
     public void start() {
-        Map<Boolean, List<Target>> hasMoved =  this.targets.stream().collect(Collectors.partitioningBy(Target::hasMoved));
+        Map<Boolean, List<Target>> hasMoved = this.targets.stream().collect(Collectors.partitioningBy(Target::hasMoved));
 
         if(!hasMoved.get(false).isEmpty()) {
             this.startScheduler.play();
@@ -83,7 +81,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
     public void notify(Target data) {
         if(this.targets.contains(data) && (data.isDown() || data.hasReachedEnd())) {
             this.remove(data);
-            this.onWaveUpdate.run();
+            this.onWaveUpdate.forEach(Runnable::run);
         }
     }
 
@@ -94,7 +92,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
 
     public void onWaveUpdate(Runnable runnable) {
         if(runnable != null) {
-            this.onWaveUpdate = runnable;
+            this.onWaveUpdate.add(runnable);
         }
     }
 

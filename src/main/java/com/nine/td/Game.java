@@ -35,10 +35,6 @@ public class Game implements Engine, HasVariableSpeed {
     private final Player player;
     private final StatusBarDisplay statusBar;
 
-    private final List<Runnable> onGameStarted  = new LinkedList<>();
-    private final List<Runnable> onGamePaused   = new LinkedList<>();
-    private final List<Runnable> onGameStopped  = new LinkedList<>();
-
     private String currentMapName;
 
     private Runnable gameSceneResizedEventHandler = () -> {};
@@ -91,19 +87,19 @@ public class Game implements Engine, HasVariableSpeed {
     @Override
     public void start() {
         this.getCurrentMap().getCurrentWave().start();
-        this.onGameStarted.forEach(Runnable::run);
+        GameEvent.START.trigger();
     }
 
     @Override
     public void pause() {
         this.getCurrentMap().getCurrentWave().pause();
-        this.onGamePaused.forEach(Runnable::run);
+        GameEvent.PAUSE.trigger();
     }
 
     @Override
     public void stop() {
         this.getCurrentMap().getCurrentWave().stop();
-        this.onGameStopped.forEach(Runnable::run);
+        GameEvent.STOP.trigger();
     }
 
     @Override
@@ -124,21 +120,31 @@ public class Game implements Engine, HasVariableSpeed {
 
     private void setMaps(List<String> maps) {
         this.maps.addAll(maps.stream().map(Map::load).collect(Collectors.toList()));
-        this.maps.forEach(map -> map.getWaves().forEach(wave -> wave.onWaveUpdate(() -> {
-            if(wave.get().isEmpty()) {
-                getCurrentMap().loadNextWave();
-                stop();
-            }
-            statusBar.update();
-        })));
         this.navigation.setMaps(maps);
         this.setMap(this.maps.get(0).getName());
     }
 
     private void setMap(String mapName) {
         this.currentMapName = mapName;
-        this.mapPreview.getChildren().setAll(this.getMap(mapName).render());
-        this.statusBar.setMap(this.getCurrentMap());
+
+        Map map = this.getCurrentMap().reload();
+
+        map.getWaves().forEach(wave -> wave.onWaveUpdate(() -> {
+            if(wave.get().isEmpty()) {
+                wave.stop();
+                map.removeWave(wave);
+                this.mapPreview.getChildren().setAll(map.render());
+
+                if(!map.getWaves().isEmpty()) {
+                    stop();
+                }
+            }
+
+            statusBar.update();
+        }));
+
+        this.mapPreview.getChildren().setAll(map.render());
+        this.statusBar.setMap(map);
         this.statusBar.update();
         this.fireEvent();
     }
@@ -191,22 +197,14 @@ public class Game implements Engine, HasVariableSpeed {
         System.exit(0);
     }
 
-    public void onGameStarted(Runnable onGameStarted) {
-        if(onGameStarted != null) {
-            this.onGameStarted.add(onGameStarted);
-        }
+    public void addGameEventHandler(GameEvent gameEvent, Runnable handler) {
+        gameEvent.addHandler(handler);
     }
 
-    public void onGamePaused(Runnable onGamePaused) {
-        if(onGamePaused != null) {
-            this.onGamePaused.add(onGamePaused);
-        }
-    }
-
-    public void onGameStopped(Runnable onGameStopped) {
-        if(onGameStopped != null) {
-            this.onGameStopped.add(onGameStopped);
-        }
+    public void reload() {
+        this.stop();
+        this.setMap(this.getCurrentMap().getName());
+        GameEvent.RELOAD.trigger();
     }
 
     private void fireEvent() {
@@ -215,8 +213,22 @@ public class Game implements Engine, HasVariableSpeed {
         }
     }
 
-    public void reload() {
-        this.stop();
-        this.getCurrentMap().reload();
+    public enum GameEvent {
+        START,
+        PAUSE,
+        STOP,
+        RELOAD;
+
+        private final List<Runnable> handlers = new LinkedList<>();
+
+        void addHandler(Runnable handler) {
+            if(handler != null) {
+                this.handlers.add(handler);
+            }
+        }
+
+        void trigger() {
+            this.handlers.forEach(Runnable::run);
+        }
     }
 }
