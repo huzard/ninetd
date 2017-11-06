@@ -79,7 +79,7 @@ public final class Map implements HasRendering {
             this.root = new Group(this.drawArea, this.enemies);
         }
 
-        this.enemies.getChildren().setAll(this.getCurrentWave().get().stream().map(HasRendering::render).collect(Collectors.toList()));
+        this.getCurrentWave().ifPresent(wave -> this.enemies.getChildren().setAll(wave.get().stream().map(HasRendering::render).collect(Collectors.toList())));
 
         return this.root;
     }
@@ -161,14 +161,8 @@ public final class Map implements HasRendering {
         return this;
     }
 
-    public Wave getCurrentWave() {
-        //double check
-        //if waves empty, then reload, and if empty, then there are no waves
-        if(this.waves.isEmpty() && this.reload().waves.isEmpty()) {
-            throw new RuntimeException("No map found");
-        }
-
-        return this.waves.get(0);
+    public Optional<Wave> getCurrentWave() {
+        return this.waves.isEmpty() ? Optional.empty() : Optional.of(this.waves.get(0));
     }
 
     private static List<Wave> parseWaves(List<String> wavesDefinition, List<com.nine.td.game.path.Path> paths, Scale scale) {
@@ -249,7 +243,12 @@ public final class Map implements HasRendering {
         return Collections.unmodifiableList(this.waves);
     }
 
-    public boolean removeWave(Wave wave) {
-        return this.waves.remove(wave);
+    public Optional<Wave> nextWave() {
+        if(!this.waves.isEmpty()) {
+            this.waves.get(0).stop();
+            this.waves.remove(0);
+        }
+
+        return this.getCurrentWave();
     }
 }

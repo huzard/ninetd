@@ -48,7 +48,7 @@ public class StatusBar implements StatusBarDisplay {
         this.mapInfos.getChildren().setAll(
                 new Text("Map : " + this.map.getName()),
                 separator(),
-                new Text(this.map.getWaves().isEmpty() ? "Map over" : String.format("%d waves left. Current : %d enemies left", this.map.getWaves().size(), this.map.getCurrentWave().get().size()))
+                new Text(!this.map.getCurrentWave().isPresent() ? "Map over" : String.format("%d waves left. Current : %d enemies left", this.map.getWaves().size(), this.map.getCurrentWave().get().get().size()))
         );
     }
 

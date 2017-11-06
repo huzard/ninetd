@@ -86,25 +86,25 @@ public class Game implements Engine, HasVariableSpeed {
 
     @Override
     public void start() {
-        this.getCurrentMap().getCurrentWave().start();
+        this.getCurrentMap().getCurrentWave().ifPresent(Engine::start);
         GameEvent.START.trigger();
     }
 
     @Override
     public void pause() {
-        this.getCurrentMap().getCurrentWave().pause();
+        this.getCurrentMap().getCurrentWave().ifPresent(Engine::pause);
         GameEvent.PAUSE.trigger();
     }
 
     @Override
     public void stop() {
-        this.getCurrentMap().getCurrentWave().stop();
+        this.getCurrentMap().getCurrentWave().ifPresent(Engine::stop);
         GameEvent.STOP.trigger();
     }
 
     @Override
     public void changeSpeed(double coeff) {
-        this.getCurrentMap().getCurrentWave().changeSpeed(coeff);
+        this.getCurrentMap().getCurrentWave().ifPresent(wave -> wave.changeSpeed(coeff));
     }
 
     public Scene getScene() {
@@ -131,13 +131,10 @@ public class Game implements Engine, HasVariableSpeed {
 
         map.getWaves().forEach(wave -> wave.onWaveUpdate(() -> {
             if(wave.get().isEmpty()) {
-                wave.stop();
-                map.removeWave(wave);
-                this.mapPreview.getChildren().setAll(map.render());
-
-                if(!map.getWaves().isEmpty()) {
+                map.nextWave().ifPresent(nextWave -> {
+                    this.mapPreview.getChildren().setAll(map.render());
                     stop();
-                }
+                });
             }
 
             statusBar.update();

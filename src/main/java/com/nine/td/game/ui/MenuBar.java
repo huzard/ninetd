@@ -27,6 +27,7 @@ public class MenuBar implements MenuBarDisplay {
         if(this.root == null) {
             //File menu
             MenuItem newGame = new MenuItem("Nouveau jeu");
+            newGame.setOnAction(event -> Game.getInstance().reload());
             MenuItem exit = new MenuItem("Quitter");
             exit.setOnAction(event -> Game.exit());
 
