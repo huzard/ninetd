@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVariableSpeed {
     private final List<Target> targets = new CopyOnWriteArrayList<>();
     private Timeline startScheduler;
+    private Runnable onWaveUpdate = () -> {};
 
     public Wave(List<Target> targets, List<Path> paths) {
         Preconditions.checkArgument(targets != null, "null targets");
@@ -38,17 +39,6 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
         });
 
         this.restartScheduler();
-    }
-
-    private void restartScheduler() {
-        if(this.startScheduler != null) {
-            this.startScheduler.stop();
-        }
-
-        Deque<Target> targetsToStart = Lists.newLinkedList(this.targets);
-
-        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(500L), event -> targetsToStart.poll().start()));
-        this.startScheduler.setCycleCount(targetsToStart.size());
     }
 
     @Override
@@ -90,14 +80,32 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
     }
 
     @Override
-    public void check(Target target) {
-        if(this.targets.contains(target) && (target.isDown() || target.hasReachedEnd())) {
-            remove(target);
+    public void notify(Target data) {
+        if(this.targets.contains(data) && (data.isDown() || data.hasReachedEnd())) {
+            this.remove(data);
+            this.onWaveUpdate.run();
         }
     }
 
     @Override
     public void changeSpeed(double coeff) {
         this.targets.forEach(target -> target.changeSpeed(coeff));
+    }
+
+    public void onWaveUpdate(Runnable runnable) {
+        if(runnable != null) {
+            this.onWaveUpdate = runnable;
+        }
+    }
+
+    private void restartScheduler() {
+        if(this.startScheduler != null) {
+            this.startScheduler.stop();
+        }
+
+        Deque<Target> targetsToStart = Lists.newLinkedList(this.targets);
+
+        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(500L), event -> targetsToStart.poll().start()));
+        this.startScheduler.setCycleCount(targetsToStart.size());
     }
 }

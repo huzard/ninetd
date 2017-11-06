@@ -1,4 +1,4 @@
-package com.nine.td.game;
+package com.nine.td.game.ui;
 
 import javafx.scene.Node;
 

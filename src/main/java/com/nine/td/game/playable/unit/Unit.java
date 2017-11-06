@@ -62,9 +62,9 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
     }
 
     @Override
-    public void check(Target target) {
-        if(target.isDown() || (this.targets.contains(target) && !canReach(target))) {
-            remove(target);
+    public void notify(Target data) {
+        if(data.isDown() || (this.targets.contains(data) && !canReach(data))) {
+            remove(data);
         }
     }
 

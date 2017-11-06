@@ -3,16 +3,14 @@ package com.nine.td.game.graphics.map;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.nine.td.GamePaths;
-import com.nine.td.game.HasRendering;
 import com.nine.td.game.graphics.Components;
 import com.nine.td.game.graphics.GraphicComponent;
 import com.nine.td.game.path.Direction;
 import com.nine.td.game.path.Position;
 import com.nine.td.game.path.Wave;
 import com.nine.td.game.path.WayPoint;
-import com.nine.td.game.playable.Engine;
-import com.nine.td.game.playable.HasVariableSpeed;
 import com.nine.td.game.playable.Target;
+import com.nine.td.game.ui.HasRendering;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
@@ -31,8 +29,8 @@ import java.util.stream.Stream;
 
 import static com.nine.td.GameConstants.*;
 
-public final class Map implements HasRendering, Engine, HasVariableSpeed {
-    private Node root;
+public final class Map implements HasRendering {
+    private Group root;
 
     private char[][] grid;
     private List<Wave> waves;
@@ -41,31 +39,10 @@ public final class Map implements HasRendering, Engine, HasVariableSpeed {
     private final Scale scale;
     private final Properties metaProperties;
 
-    private Group enemies = new Group();
-
     private Map(String name, Scale scale) {
         this.scale = scale;
         this.name = name;
         this.metaProperties = new Properties();
-    }
-
-    @Override
-    public void start() {
-        this.getCurrentWave().ifPresent(wave -> {
-            this.enemies.getChildren().setAll(wave.get().stream().map(HasRendering::render).collect(Collectors.toList()));
-            wave.start();
-        });
-    }
-
-    @Override
-    public void stop() {
-        this.getCurrentWave().ifPresent(Engine::stop);
-        this.enemies.getChildren().clear();
-    }
-
-    @Override
-    public void pause() {
-        this.getCurrentWave().ifPresent(Engine::pause);
     }
 
     @Override
@@ -96,7 +73,9 @@ public final class Map implements HasRendering, Engine, HasVariableSpeed {
                                 );
                     }));
 
-            this.root = new Group(canvas, this.enemies);
+            this.root = new Group();
+            this.root.getChildren().add(canvas);
+            this.root.getChildren().addAll(this.getCurrentWave().get().stream().map(HasRendering::render).collect(Collectors.toList()));
         }
 
         return this.root;
@@ -179,8 +158,14 @@ public final class Map implements HasRendering, Engine, HasVariableSpeed {
         return this;
     }
 
-    private Optional<Wave> getCurrentWave() {
-        return this.waves.isEmpty() ? Optional.empty() : Optional.of(this.waves.get(0));
+    public Wave getCurrentWave() {
+        //double check
+        //if waves empty, then reload, and if empty, then there are no waves
+        if(this.waves.isEmpty() && this.reload().waves.isEmpty()) {
+            throw new RuntimeException("No map found");
+        }
+
+        return this.waves.get(0);
     }
 
     private static List<Wave> parseWaves(List<String> wavesDefinition, List<com.nine.td.game.path.Path> paths, Scale scale) {
@@ -257,8 +242,11 @@ public final class Map implements HasRendering, Engine, HasVariableSpeed {
         return name;
     }
 
-    @Override
-    public void changeSpeed(double coeff) {
-        this.waves.forEach(wave -> wave.changeSpeed(coeff));
+    public List<Wave> getWaves() {
+        return Collections.unmodifiableList(this.waves);
+    }
+
+    public void loadNextWave() {
+        this.waves.remove(this.getCurrentWave());
     }
 }

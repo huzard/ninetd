@@ -3,10 +3,7 @@ package com.nine.td;
 import com.nine.td.game.graphics.map.Map;
 import com.nine.td.game.playable.Engine;
 import com.nine.td.game.playable.HasVariableSpeed;
-import com.nine.td.game.ui.MenuBar;
-import com.nine.td.game.ui.MenuBarDisplay;
-import com.nine.td.game.ui.Navigation;
-import com.nine.td.game.ui.NavigationDisplay;
+import com.nine.td.game.ui.*;
 import javafx.application.Platform;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -26,6 +23,8 @@ import static com.nine.td.GamePaths.CSS_DIR;
 import static com.nine.td.GamePaths.FILE_SEP;
 
 public class Game implements Engine, HasVariableSpeed {
+    private static Game instance = null;
+
     private final Group mapPreview = new Group();
     private final List<Map> maps = new LinkedList<>();
     private final List<CssStyle> styles = new LinkedList<>();
@@ -33,12 +32,12 @@ public class Game implements Engine, HasVariableSpeed {
     private final NavigationDisplay navigation;
     private final MenuBarDisplay menuBar;
     private final Scene scene;
+    private final Player player;
+    private final StatusBarDisplay statusBar;
 
     private final List<Runnable> onGameStarted  = new LinkedList<>();
     private final List<Runnable> onGamePaused   = new LinkedList<>();
     private final List<Runnable> onGameStopped  = new LinkedList<>();
-
-    private static Game instance = null;
 
     private String currentMapName;
 
@@ -47,7 +46,13 @@ public class Game implements Engine, HasVariableSpeed {
     private Game() {
         this.navigation = new Navigation();
         this.menuBar = new MenuBar();
+        this.player = new Player(100, 0, 500);
+        this.statusBar = new StatusBar();
         this.scene = new Scene(new Group());
+
+        this.navigation.onMapSelected((observable, oldValue, newValue) -> this.setMap(newValue));
+        this.menuBar.onThemeSwitch(event -> this.setStyle(((MenuItem) event.getSource()).getText()));
+        this.statusBar.setPlayer(this.player);
     }
 
     public static Game getInstance() {
@@ -76,9 +81,7 @@ public class Game implements Engine, HasVariableSpeed {
         //setting styles
         game.setStyles(executors.submit(() -> Files.list(GamePaths.STYLES).map(path -> new CssStyle(path.toFile().getName(), path.toFile().listFiles())).collect(Collectors.toList())).get());
 
-        //setting handlers
-        game.navigation.onMapSelected((observable, oldValue, newValue) -> game.setMap(newValue));
-        game.menuBar.onThemeSwitch(event -> game.setStyle(((MenuItem) event.getSource()).getText()));
+        //settings
 
         game.setStyle(DEFAULT_STYLE);
 
@@ -87,29 +90,29 @@ public class Game implements Engine, HasVariableSpeed {
 
     @Override
     public void start() {
-        this.getCurrentMap().start();
+        this.getCurrentMap().getCurrentWave().start();
         this.onGameStarted.forEach(Runnable::run);
     }
 
     @Override
     public void pause() {
-        this.getCurrentMap().pause();
+        this.getCurrentMap().getCurrentWave().pause();
         this.onGamePaused.forEach(Runnable::run);
     }
 
     @Override
     public void stop() {
-        this.getCurrentMap().reload().stop();
+        this.getCurrentMap().getCurrentWave().stop();
         this.onGameStopped.forEach(Runnable::run);
     }
 
     @Override
     public void changeSpeed(double coeff) {
-        this.getCurrentMap().changeSpeed(coeff);
+        this.getCurrentMap().getCurrentWave().changeSpeed(coeff);
     }
 
     public Scene getScene() {
-        this.scene.setRoot(new VBox(this.menuBar.render(), this.navigation.render(), this.mapPreview));
+        this.scene.setRoot(new VBox(this.menuBar.render(), this.navigation.render(), this.mapPreview, this.statusBar.render()));
         return this.scene;
     }
 
@@ -121,6 +124,13 @@ public class Game implements Engine, HasVariableSpeed {
 
     private void setMaps(List<String> maps) {
         this.maps.addAll(maps.stream().map(Map::load).collect(Collectors.toList()));
+        this.maps.forEach(map -> map.getWaves().forEach(wave -> wave.onWaveUpdate(() -> {
+            if(wave.get().isEmpty()) {
+                getCurrentMap().loadNextWave();
+                stop();
+            }
+            statusBar.update();
+        })));
         this.navigation.setMaps(maps);
         this.setMap(this.maps.get(0).getName());
     }
@@ -128,6 +138,8 @@ public class Game implements Engine, HasVariableSpeed {
     private void setMap(String mapName) {
         this.currentMapName = mapName;
         this.mapPreview.getChildren().setAll(this.getMap(mapName).render());
+        this.statusBar.setMap(this.getCurrentMap());
+        this.statusBar.update();
         this.fireEvent();
     }
 
@@ -201,5 +213,10 @@ public class Game implements Engine, HasVariableSpeed {
         if(this.gameSceneResizedEventHandler != null) {
             this.gameSceneResizedEventHandler.run();
         }
+    }
+
+    public void reload() {
+        this.stop();
+        this.getCurrentMap().reload();
     }
 }

@@ -1,6 +1,5 @@
 package com.nine.td.game.ui;
 
-import com.nine.td.game.HasRendering;
 import javafx.beans.value.ChangeListener;
 
 import java.util.List;

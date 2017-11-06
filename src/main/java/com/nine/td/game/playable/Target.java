@@ -3,8 +3,8 @@ package com.nine.td.game.playable;
 import com.google.common.base.Preconditions;
 import com.nine.td.GameConstants;
 import com.nine.td.GamePaths;
-import com.nine.td.game.HasRendering;
 import com.nine.td.game.path.*;
+import com.nine.td.game.ui.HasRendering;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -185,7 +185,7 @@ public class Target implements HasRendering, HasPosition, HasDirection, Engine, 
     }
 
     public void check() {
-        this.observers.forEach(unit -> unit.check(this));
+        this.observers.forEach(unit -> unit.notify(this));
     }
 
     public boolean hasReachedEnd() {
@@ -214,7 +214,7 @@ public class Target implements HasRendering, HasPosition, HasDirection, Engine, 
         }
 
         this.movementTimeline = new Timeline(new KeyFrame(Duration.millis(speed), irrelevant -> {
-            this.observers.forEach(observer -> observer.check(Target.this));
+            this.observers.forEach(observer -> observer.notify(Target.this));
 
             if(isDown() || this.hasReachedEnd) {
                 this.stop();

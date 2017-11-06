@@ -41,9 +41,8 @@ public final class Position implements Serializable {
         return Math.sqrt((xDiff * xDiff) + (yDiff * yDiff));
     }
 
-    public void move(Direction direction) {
-        this.x += direction.getXShift();
-        this.y += direction.getYShift();
+    public boolean near(Position other, double delta) {
+        return other != null && delta >= 0 && this.distanceWith(other) < delta;
     }
 
     public static Position nonNull(Position position) {

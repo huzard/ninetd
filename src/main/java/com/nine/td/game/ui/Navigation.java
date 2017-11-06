@@ -38,7 +38,10 @@ public class Navigation implements NavigationDisplay {
         if(this.root == null) {
             this.play.setOnAction(event -> Game.getInstance().start());
             this.pause.setOnAction(event -> Game.getInstance().pause());
-            this.stop.setOnAction(event -> Game.getInstance().stop());
+            this.stop.setOnAction(event -> {
+                Game.getInstance().stop();
+                Game.getInstance().reload();
+            });
             this.accelerate.setOnAction(event -> Game.getInstance().changeSpeed(2));
             this.normal.setOnAction(event -> Game.getInstance().changeSpeed(1.0));
             this.decelerate.setOnAction(event -> Game.getInstance().changeSpeed(0.5));
