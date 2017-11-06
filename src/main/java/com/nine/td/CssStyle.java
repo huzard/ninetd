@@ -29,6 +29,6 @@ public class CssStyle {
 
     @Override
     public String toString() {
-        return String.format("%s (%s)", this.name, Stream.of(this.files).map(File::getName).collect(Collectors.joining(", ")));
+        return String.format("%s (%s)", this.name, String.join(", ", Stream.of(this.files).map(File::getName).collect(Collectors.toList())));
     }
 }
