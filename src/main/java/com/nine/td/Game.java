@@ -77,8 +77,6 @@ public class Game implements Engine, HasVariableSpeed {
         //setting styles
         game.setStyles(executors.submit(() -> Files.list(GamePaths.STYLES).map(path -> new CssStyle(path.toFile().getName(), path.toFile().listFiles())).collect(Collectors.toList())).get());
 
-        //settings
-
         game.setStyle(DEFAULT_STYLE);
 
         return game;

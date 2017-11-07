@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -33,7 +34,7 @@ public final class Map implements HasRendering {
     private Group root;
 
     private char[][] grid;
-    private List<Wave> waves;
+    private Deque<Wave> waves;
 
     private final String name;
     private final Scale scale;
@@ -64,10 +65,10 @@ public final class Map implements HasRendering {
                     .forEach(i -> IntStream.range(0, columns).forEach(j -> {
                         GraphicComponent component = Components.get(
                                 this.grid[i][j],
-                                new Position(j * (drawArea.getWidth() / columns), i * (drawArea.getHeight() / rows))
+                                new Position(j * (this.drawArea.getWidth() / columns), i * (this.drawArea.getHeight() / rows))
                         );
 
-                        drawArea
+                        this.drawArea
                                 .getGraphicsContext2D()
                                 .drawImage(
                                         component.draw(this.scale),
@@ -162,10 +163,10 @@ public final class Map implements HasRendering {
     }
 
     public Optional<Wave> getCurrentWave() {
-        return this.waves.isEmpty() ? Optional.empty() : Optional.of(this.waves.get(0));
+        return Optional.ofNullable(this.waves.peek());
     }
 
-    private static List<Wave> parseWaves(List<String> wavesDefinition, List<com.nine.td.game.path.Path> paths, Scale scale) {
+    private static Deque<Wave> parseWaves(List<String> wavesDefinition, List<com.nine.td.game.path.Path> paths, Scale scale) {
         Function<String, List<Target>> toTarget = string -> {
             //format = count:imgName:life:shield:speed
             String[] data = string.split(DATA_SEPARATOR);
@@ -198,7 +199,7 @@ public final class Map implements HasRendering {
             Collections.shuffle(waveTargets);
 
             return new Wave(waveTargets, paths);
-        }).collect(Collectors.toList());
+        }).collect(LinkedBlockingDeque::new, Deque::push, Deque::addAll);
     }
 
     private static List<com.nine.td.game.path.Path> parsePaths(List<String> pathsDefinition, Scale scale, char[][] grid) {
@@ -239,16 +240,12 @@ public final class Map implements HasRendering {
         return name;
     }
 
-    public List<Wave> getWaves() {
-        return Collections.unmodifiableList(this.waves);
+    public Collection<Wave> getWaves() {
+        return Collections.unmodifiableCollection(this.waves);
     }
 
     public Optional<Wave> nextWave() {
-        if(!this.waves.isEmpty()) {
-            this.waves.get(0).stop();
-            this.waves.remove(0);
-        }
-
+        this.waves.removeFirst();
         return this.getCurrentWave();
     }
 }

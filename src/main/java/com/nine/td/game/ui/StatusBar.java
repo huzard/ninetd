@@ -18,6 +18,7 @@ public class StatusBar implements StatusBarDisplay {
 
     private Player player;
     private Map map;
+    private int wavesSize = 0;
 
     public StatusBar() {}
 
@@ -25,7 +26,7 @@ public class StatusBar implements StatusBarDisplay {
     public Node render() {
         if(this.root == null) {
             this.update();
-            this.root = new HBox(this.playerInfos, separator(), this.mapInfos, separator());
+            this.root = new HBox(this.playerInfos, separator(), this.mapInfos);
         }
 
         return this.root;
@@ -39,6 +40,7 @@ public class StatusBar implements StatusBarDisplay {
     @Override
     public void setMap(Map map) {
         this.map = Objects.requireNonNull(map, "null map");
+        this.wavesSize = this.map.getWaves().size();
     }
 
     @Override
@@ -48,7 +50,16 @@ public class StatusBar implements StatusBarDisplay {
         this.mapInfos.getChildren().setAll(
                 new Text("Map : " + this.map.getName()),
                 separator(),
-                new Text(!this.map.getCurrentWave().isPresent() ? "Map over" : String.format("%d waves left. Current : %d enemies left", this.map.getWaves().size(), this.map.getCurrentWave().get().get().size()))
+                new Text(
+                        !this.map.getCurrentWave().isPresent() ? "Map over" :
+
+                        String.format(
+                                "Wave %d/%d : %d enemies left",
+                                (this.wavesSize - this.map.getWaves().size()) + 1,
+                                this.wavesSize,
+                                this.map.getCurrentWave().get().get().size()
+                        )
+                )
         );
     }
 
