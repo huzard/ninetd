@@ -64,6 +64,7 @@ public final class Map implements HasRendering<Node> {
                     .forEach(i -> IntStream.range(0, columns).forEach(j -> {
                         GraphicComponent component = Components.get(
                                 this.grid[i][j],
+                                this.scale,
                                 new Position(j * (this.drawArea.getWidth() / columns), i * (this.drawArea.getHeight() / rows))
                         );
 
@@ -229,9 +230,7 @@ public final class Map implements HasRendering<Node> {
 
         return pathsDefinition.stream().map(path -> {
             //format = path:(x:y:[N/E/S/W], x:y:[N/E/S/W], ...)
-            return new com.nine.td.game.path.Path(
-                    Stream.of(path.split(LIST_SEPARATOR)).map(toWaypoint).collect(Collectors.toList())
-            );
+            return new com.nine.td.game.path.Path(Stream.of(path.split(LIST_SEPARATOR)).map(toWaypoint).collect(Collectors.toList()));
         }).collect(Collectors.toList());
     }
 

@@ -48,8 +48,6 @@ public class Game implements Engine, HasVariableSpeed {
         this.statusBar = new StatusBar();
         this.scene = new Scene(new Group());
 
-        this.navigation.onMapSelected((observable, oldValue, newValue) -> this.setMap(newValue));
-        this.menuBar.onThemeSwitch(event -> this.setStyle(((MenuItem) event.getSource()).getText()));
         this.statusBar.setPlayer(this.player);
     }
 
@@ -108,7 +106,11 @@ public class Game implements Engine, HasVariableSpeed {
     }
 
     public Scene getScene() {
-        this.scene.setRoot(new VBox(this.menuBar.render(), this.navigation.render(), this.mapPreview, this.statusBar.render()));
+        if(this.scene.getRoot().getChildrenUnmodifiable().isEmpty()) {
+            this.scene.setRoot(new VBox(this.menuBar.render(), this.navigation.render(), this.mapPreview, this.statusBar.render()));
+            this.navigation.onMapSelected((observable, oldValue, newValue) -> this.setMap(newValue));
+            this.menuBar.onThemeSwitch(event -> this.setStyle(((MenuItem) event.getSource()).getText()));
+        }
         return this.scene;
     }
 
@@ -130,8 +132,6 @@ public class Game implements Engine, HasVariableSpeed {
         Map map = this.getCurrentMap().reload();
 
         map.getWaves().forEach(wave -> wave.onWaveUpdate(() -> {
-            statusBar.update();
-
             if(wave.get().isEmpty()) {
                 Optional<Wave> nextWave = map.nextWave();
 
@@ -142,6 +142,8 @@ public class Game implements Engine, HasVariableSpeed {
                     reload();
                 }
             }
+
+            this.statusBar.update();
         }));
 
         this.mapPreview.getChildren().setAll(map.render());

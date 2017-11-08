@@ -1,7 +1,7 @@
 package com.nine.td.game.playable;
 
 import com.google.common.base.Preconditions;
-import com.nine.td.game.graphics.GraphicComponent;
+import com.nine.td.game.graphics.AnimatedGraphicComponent;
 import com.nine.td.game.path.*;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -16,7 +16,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * Représente une cible
  */
-public class Target extends GraphicComponent implements HasPosition, HasDirection, Engine, Contains<Observer<Target>>, HasPath, HasVariableSpeed {
+public class Target extends AnimatedGraphicComponent implements HasPosition, HasDirection, Engine, Contains<Observer<Target>>, HasPath, HasVariableSpeed {
     private         Direction direction;
     private         int life;
     private         int shield;
@@ -177,15 +177,15 @@ public class Target extends GraphicComponent implements HasPosition, HasDirectio
                 this.direction.move(this.position);
                 this.imgContainer.relocate(this.position.getX(), this.position.getY());
 
-                if(!this.isVisible()) {
-                    this.setVisible(true);
+                if(!this.imgContainer.isVisible()) {
+                    this.imgContainer.setVisible(true);
                 }
 
                 this.path.accept(Target.this);
 
                 if (this.path.getEnd().getPosition().equals(this.position)) {
                     this.hasReachedEnd = true;
-                    this.setVisible(false);
+                    this.imgContainer.setVisible(false);
                 }
             }
         }));
