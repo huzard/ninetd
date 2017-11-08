@@ -1,6 +1,7 @@
 package com.nine.td;
 
 import com.nine.td.game.graphics.map.Map;
+import com.nine.td.game.path.Wave;
 import com.nine.td.game.playable.Engine;
 import com.nine.td.game.playable.HasVariableSpeed;
 import com.nine.td.game.ui.*;
@@ -13,6 +14,7 @@ import javafx.scene.layout.VBox;
 import java.nio.file.Files;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -128,14 +130,18 @@ public class Game implements Engine, HasVariableSpeed {
         Map map = this.getCurrentMap().reload();
 
         map.getWaves().forEach(wave -> wave.onWaveUpdate(() -> {
+            statusBar.update();
+
             if(wave.get().isEmpty()) {
-                map.nextWave().ifPresent(nextWave -> {
+                Optional<Wave> nextWave = map.nextWave();
+
+                if(nextWave.isPresent()) {
                     this.mapPreview.getChildren().setAll(map.render());
                     stop();
-                });
+                } else {
+                    reload();
+                }
             }
-
-            statusBar.update();
         }));
 
         this.mapPreview.getChildren().setAll(map.render());

@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 import static com.nine.td.GameConstants.*;
 
-public final class Map implements HasRendering {
+public final class Map implements HasRendering<Node> {
     private Group root;
 
     private char[][] grid;
@@ -70,7 +70,7 @@ public final class Map implements HasRendering {
                         this.drawArea
                                 .getGraphicsContext2D()
                                 .drawImage(
-                                        component.draw(this.scale),
+                                        component.render().getImage(),
                                         component.getPosition().getX(),
                                         component.getPosition().getY()
                                 );
@@ -79,7 +79,7 @@ public final class Map implements HasRendering {
             this.root = new Group(this.drawArea, this.enemies);
         }
 
-        this.getCurrentWave().ifPresent(wave -> this.enemies.getChildren().setAll(wave.get().stream().map(HasRendering::render).collect(Collectors.toList())));
+        this.getCurrentWave().ifPresent(wave -> this.enemies.getChildren().setAll(wave.get().stream().map(Target::render).collect(Collectors.toList())));
 
         return this.root;
     }
@@ -182,7 +182,7 @@ public final class Map implements HasRendering {
             Preconditions.checkState(speed > 0,     "require speed > 0 (found " + speed + ")");
 
             return Stream
-                    .generate(() -> new Target(scale, GamePaths.ENEMIES.resolve(imgName), life, shield, speed))
+                    .generate(() -> new Target(GamePaths.ENEMIES.resolve(imgName), scale, life, shield, speed))
                     .limit(count)
                     .collect(Collectors.toList());
         };

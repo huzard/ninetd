@@ -9,11 +9,11 @@ public final class Components {
     }
 
     public static GraphicComponent get(char code, Position position) {
-        GraphicComponent graphicComponent = new GraphicComponent();
+        GraphicComponent graphicComponent = new GraphicComponent(GamePaths.SPRITES.resolve("null.png"));
 
         switch(code) {
-            case '0' : graphicComponent = new GraphicComponent(() -> GamePaths.SPRITES.resolve("tile.png")); break;
-            case '1' : graphicComponent = new GraphicComponent(() -> GamePaths.SPRITES.resolve("path.png")); break;
+            case '0' : graphicComponent = new GraphicComponent(GamePaths.SPRITES.resolve("tile.png")); break;
+            case '1' : graphicComponent = new GraphicComponent(GamePaths.SPRITES.resolve("path.png")); break;
         }
 
         graphicComponent.setPosition(Position.nonNull(position));
