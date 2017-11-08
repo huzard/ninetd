@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -199,7 +198,7 @@ public final class Map implements HasRendering {
             Collections.shuffle(waveTargets);
 
             return new Wave(waveTargets, paths);
-        }).collect(LinkedBlockingDeque::new, Deque::push, Deque::addAll);
+        }).collect(LinkedList::new, Deque::push, Deque::addAll);
     }
 
     private static List<com.nine.td.game.path.Path> parsePaths(List<String> pathsDefinition, Scale scale, char[][] grid) {
