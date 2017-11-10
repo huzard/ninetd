@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import static com.nine.td.GameConstants.DEFAULT_STYLE;
 import static com.nine.td.GamePaths.CSS_DIR;
 import static com.nine.td.GamePaths.FILE_SEP;
+import static java.util.function.Function.identity;
 
 public class Game implements Engine, HasVariableSpeed {
     private static Game instance = null;
@@ -36,6 +37,10 @@ public class Game implements Engine, HasVariableSpeed {
     private final Scene scene;
     private final Player player;
     private final StatusBarDisplay statusBar;
+
+    private final java.util.Map<GameEvent, List<Runnable>> eventHandlers =
+            Stream  .of(GameEvent.values())
+                    .collect(Collectors.toMap(identity(), e -> new LinkedList<>()));
 
     private String currentMapName;
 
@@ -85,19 +90,25 @@ public class Game implements Engine, HasVariableSpeed {
     @Override
     public void start() {
         this.getCurrentMap().getCurrentWave().ifPresent(Engine::start);
-        GameEvent.START.trigger();
+        this.trigger(GameEvent.START);
     }
 
     @Override
     public void pause() {
         this.getCurrentMap().getCurrentWave().ifPresent(Engine::pause);
-        GameEvent.PAUSE.trigger();
+        this.trigger(GameEvent.PAUSE);
     }
 
     @Override
     public void stop() {
         this.getCurrentMap().getCurrentWave().ifPresent(Engine::stop);
-        GameEvent.STOP.trigger();
+        this.trigger(GameEvent.STOP);
+    }
+
+    public void reload() {
+        this.stop();
+        this.setMap(this.getCurrentMap().getName());
+        this.trigger(GameEvent.RELOAD);
     }
 
     @Override
@@ -200,14 +211,30 @@ public class Game implements Engine, HasVariableSpeed {
         System.exit(0);
     }
 
-    public void addGameEventHandler(GameEvent gameEvent, Runnable handler) {
-        gameEvent.addHandler(handler);
+    public void onStart(Runnable handler) {
+        this.addHandler(GameEvent.START, handler);
     }
 
-    public void reload() {
-        this.stop();
-        this.setMap(this.getCurrentMap().getName());
-        GameEvent.RELOAD.trigger();
+    public void onPause(Runnable handler) {
+        this.addHandler(GameEvent.PAUSE, handler);
+    }
+
+    public void onStop(Runnable handler) {
+        this.addHandler(GameEvent.STOP, handler);
+    }
+
+    public void onReload(Runnable handler) {
+        this.addHandler(GameEvent.RELOAD, handler);
+    }
+
+    private void addHandler(GameEvent event, Runnable runnable) {
+        if(runnable != null) {
+            this.eventHandlers.get(event).add(runnable);
+        }
+    }
+
+    private void trigger(GameEvent gameEvent) {
+        this.eventHandlers.get(gameEvent).forEach(Runnable::run);
     }
 
     private void fireEvent() {
@@ -216,22 +243,10 @@ public class Game implements Engine, HasVariableSpeed {
         }
     }
 
-    public enum GameEvent {
+    enum GameEvent {
         START,
         PAUSE,
         STOP,
         RELOAD;
-
-        private final List<Runnable> handlers = new LinkedList<>();
-
-        void addHandler(Runnable handler) {
-            if(handler != null) {
-                this.handlers.add(handler);
-            }
-        }
-
-        void trigger() {
-            this.handlers.forEach(Runnable::run);
-        }
     }
 }

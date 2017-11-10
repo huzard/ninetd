@@ -14,6 +14,7 @@ import org.kordamp.ikonli.fontawesome.FontAwesome;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Navigation implements NavigationDisplay {
@@ -44,10 +45,10 @@ public class Navigation implements NavigationDisplay {
             this.normal.setOnAction(event -> Game.getInstance().changeSpeed(1.0));
             this.decelerate.setOnAction(event -> Game.getInstance().changeSpeed(0.5));
 
-            Game.getInstance().addGameEventHandler(Game.GameEvent.START,    () -> this.disableNodes(this.play, this.mapList));
-            Game.getInstance().addGameEventHandler(Game.GameEvent.PAUSE,    () -> this.disableNodes(this.pause, this.mapList, this.decelerate, this.accelerate, this.normal));
-            Game.getInstance().addGameEventHandler(Game.GameEvent.STOP,     () -> this.disableNodes(this.pause, this.mapList, this.stop, this.decelerate, this.accelerate, this.normal));
-            Game.getInstance().addGameEventHandler(Game.GameEvent.RELOAD,   () -> this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().onStart(()   -> this.disableNodes(this.play, this.mapList));
+            Game.getInstance().onPause(()   -> this.disableNodes(this.pause, this.mapList, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().onStop(()    -> this.disableNodes(this.pause, this.mapList, this.stop, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().onReload(()  -> this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
 
             this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal);
 
@@ -70,8 +71,9 @@ public class Navigation implements NavigationDisplay {
     }
 
     private void disableNodes(Node ... nodes) {
-        Stream.of(this.play, this.pause, this.stop, this.mapList, this.decelerate, this.accelerate, this.normal).forEach(node -> node.setDisable(false));
-        Stream.of(nodes).forEach(button -> button.setDisable(true));
+        Stream  .of(this.play, this.pause, this.stop, this.mapList, this.decelerate, this.accelerate, this.normal)
+                .collect(Collectors.partitioningBy(input -> Stream.of(nodes).anyMatch(node -> node == input)))
+                .forEach((b, list) -> list.forEach(node -> node.setDisable(b)));
     }
 
     @Override
