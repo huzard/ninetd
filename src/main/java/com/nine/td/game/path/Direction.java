@@ -8,10 +8,10 @@ import java.io.Serializable;
  * Représente une direction dans un plan orienté, définie par une valeur (x; y)
  */
 public enum Direction implements Serializable {
-    NORTH   (0, -1),    //Déplacement vertical haut     : aucun shift x, un déplacement vertical vers le haut
-    EAST    (1, 0),     //Déplacement horizontal droit  : un déplacement latéral vers la droite, aucun shift y
-    SOUTH   (0, 1),     //Déplacement vertical bas      : aucun shift x, un déplacement vertical vers le bas
-    WEST    (-1, 0);    //Déplacement horizontal gauche : un déplacement latéral vers la droite, aucun shift y
+    NORTH   (0, -1, 'N'),    //Déplacement vertical haut     : aucun shift x, un déplacement vertical vers le haut
+    EAST    (1, 0, 'E'),     //Déplacement horizontal droit  : un déplacement latéral vers la droite, aucun shift y
+    SOUTH   (0, 1, 'S'),     //Déplacement vertical bas      : aucun shift x, un déplacement vertical vers le bas
+    WEST    (-1, 0, 'W');    //Déplacement horizontal gauche : un déplacement latéral vers la droite, aucun shift y
 
     //x shift
     private int xShift;
@@ -19,9 +19,13 @@ public enum Direction implements Serializable {
     //y shift
     private int yShift;
 
-    Direction(int xShift, int yShift) {
+    //char code
+    private char charCode;
+
+    Direction(int xShift, int yShift, char charCode) {
         this.xShift = xShift;
         this.yShift = yShift;
+        this.charCode = charCode;
     }
 
     public int getXShift() {
@@ -30,6 +34,10 @@ public enum Direction implements Serializable {
 
     public int getYShift() {
         return yShift;
+    }
+
+    public char charCode() {
+        return charCode;
     }
 
     public void update(HasDirection hasDirection) {

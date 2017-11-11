@@ -16,18 +16,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.nine.td.GameConstants.ANIMATION_TARGET_SPEED;
-
 public class AnimatedGraphicComponent extends GraphicComponent {
     private final List<Image> images;
+    private long timeAnimation;
     private Timeline animationTimeline = new Timeline();
     private int currentImg = 0;
 
-    public AnimatedGraphicComponent(Path supplier, Scale scale) {
+    public AnimatedGraphicComponent(Path supplier, Scale scale, long timeAnimation) {
         super(supplier, scale);
         this.images = this.loadImages();
         this.imgContainer.setImage(this.images.get(0));
-        this.setAnimationTimeline(ANIMATION_TARGET_SPEED);
+        this.timeAnimation = timeAnimation;
+        this.setAnimationTimeline(this.timeAnimation);
     }
 
     private List<Image> loadImages() {
@@ -65,18 +65,18 @@ public class AnimatedGraphicComponent extends GraphicComponent {
     }
 
     public void changeAnimationSpeed(double coeff) {
-        this.setAnimationTimeline(ANIMATION_TARGET_SPEED / coeff);
+        this.setAnimationTimeline(this.timeAnimation / coeff);
     }
 
-    protected void startAnimation() {
+    public void startAnimation() {
         this.animationTimeline.play();
     }
 
-    protected void pauseAnimation() {
+    public void pauseAnimation() {
         this.animationTimeline.pause();
     }
 
-    protected void stopAnimation() {
+    public void stopAnimation() {
         this.animationTimeline.stop();
         this.currentImg = 0;
     }

@@ -1,6 +1,7 @@
 package com.nine.td.game.playable;
 
 import com.google.common.base.Preconditions;
+import com.nine.td.GameConstants;
 import com.nine.td.game.graphics.AnimatedGraphicComponent;
 import com.nine.td.game.path.*;
 import javafx.animation.Animation;
@@ -27,7 +28,7 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     private         boolean hasReachedEnd = false;
 
     public Target(java.nio.file.Path imgPath, Scale scale, int life, int shield, int speed) {
-        super(imgPath, scale);
+        super(imgPath, scale, GameConstants.ANIMATION_TARGET_SPEED);
         this.setLife(life);
         this.setShield(shield);
         this.setSpeed(speed);

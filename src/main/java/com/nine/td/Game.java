@@ -89,19 +89,19 @@ public class Game implements Engine, HasVariableSpeed {
 
     @Override
     public void start() {
-        this.getCurrentMap().getCurrentWave().ifPresent(Engine::start);
+        this.getCurrentMap().start();
         this.trigger(GameEvent.START);
     }
 
     @Override
     public void pause() {
-        this.getCurrentMap().getCurrentWave().ifPresent(Engine::pause);
+        this.getCurrentMap().pause();
         this.trigger(GameEvent.PAUSE);
     }
 
     @Override
     public void stop() {
-        this.getCurrentMap().getCurrentWave().ifPresent(Engine::stop);
+        this.getCurrentMap().stop();
         this.trigger(GameEvent.STOP);
     }
 
@@ -113,7 +113,7 @@ public class Game implements Engine, HasVariableSpeed {
 
     @Override
     public void changeSpeed(double coeff) {
-        this.getCurrentMap().getCurrentWave().ifPresent(wave -> wave.changeSpeed(coeff));
+        this.getCurrentMap().changeSpeed(coeff);
     }
 
     public Scene getScene() {

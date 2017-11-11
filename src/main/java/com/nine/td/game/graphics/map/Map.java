@@ -3,17 +3,21 @@ package com.nine.td.game.graphics.map;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.nine.td.GamePaths;
+import com.nine.td.game.graphics.AnimatedGraphicComponent;
 import com.nine.td.game.graphics.Components;
 import com.nine.td.game.graphics.GraphicComponent;
 import com.nine.td.game.path.Direction;
 import com.nine.td.game.path.Position;
 import com.nine.td.game.path.Wave;
 import com.nine.td.game.path.WayPoint;
+import com.nine.td.game.playable.Engine;
+import com.nine.td.game.playable.HasVariableSpeed;
 import com.nine.td.game.playable.Target;
 import com.nine.td.game.ui.HasRendering;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.image.ImageView;
 import javafx.scene.transform.Scale;
 
 import java.io.File;
@@ -29,7 +33,7 @@ import java.util.stream.Stream;
 
 import static com.nine.td.GameConstants.*;
 
-public final class Map implements HasRendering<Node> {
+public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
     private Group root;
 
     private char[][] grid;
@@ -40,6 +44,8 @@ public final class Map implements HasRendering<Node> {
     private final Properties metaProperties;
 
     private Canvas drawArea;
+
+    private final List<AnimatedGraphicComponent> waypoints = new LinkedList<>();
     private final Group enemies = new Group();
 
     private Map(String name, Scale scale) {
@@ -78,6 +84,13 @@ public final class Map implements HasRendering<Node> {
                     }));
 
             this.root = new Group(this.drawArea, this.enemies);
+
+            this.waypoints.forEach(animatedGraphicComponent -> {
+                ImageView image = animatedGraphicComponent.render();
+                image.opacityProperty().setValue(0.4);
+                image.relocate(animatedGraphicComponent.getPosition().getX(), animatedGraphicComponent.getPosition().getY());
+                this.root.getChildren().add(image);
+            });
         }
 
         this.getCurrentWave().ifPresent(wave -> this.enemies.getChildren().setAll(wave.get().stream().map(Target::render).collect(Collectors.toList())));
@@ -119,8 +132,19 @@ public final class Map implements HasRendering<Node> {
             //Map definition
             this.grid = mapDefinition.stream().map(String::toCharArray).toArray(char[][]::new);
 
+            //Paths compute
+            List<com.nine.td.game.path.Path> paths = parsePaths(pathsDefinition, this.scale, this.grid);
+
+            this.waypoints.clear();
+
+            paths.forEach(path -> Stream.concat(Stream.of(path.getStart(), path.getEnd()), path.getWayPoints().stream()).forEach(wayPoint -> {
+                this.waypoints.add((AnimatedGraphicComponent) Components.get(wayPoint.getDirection().charCode(), this.scale, wayPoint.getPosition()));
+            }));
+
             //waves compute
-            this.waves = parseWaves(wavesDefinition, parsePaths(pathsDefinition, this.scale, this.grid), this.scale);
+            this.waves = parseWaves(wavesDefinition, paths, this.scale);
+
+            this.stop();
 
             return this.loadMeta(pathMap);
         } catch(IOException e) {
@@ -222,7 +246,7 @@ public final class Map implements HasRendering<Node> {
             Preconditions.checkState(x >= 0, "require positive x position for waypoint (found " + x + ")");
             Preconditions.checkState(y >= 0, "require positive y position for waypoint (found " + y + ")");
 
-            Position position = new Position(y * (canvasWidth / columns),x * (canvasHeight / rows));
+            Position position = new Position(x * (canvasWidth / columns),y * (canvasHeight / rows));
             Direction direction = Direction.get(wayPointDefinition[2].charAt(0));
 
             return new WayPoint(direction, position);
@@ -245,5 +269,38 @@ public final class Map implements HasRendering<Node> {
     public Optional<Wave> nextWave() {
         this.waves.removeFirst();
         return this.getCurrentWave();
+    }
+
+    @Override
+    public void start() {
+        this.getCurrentWave().ifPresent(wave -> {
+            wave.start();
+            this.waypoints.forEach(AnimatedGraphicComponent::startAnimation);
+        });
+    }
+
+    @Override
+    public void stop() {
+        this.getCurrentWave().ifPresent(wave -> {
+            wave.stop();
+            this.waypoints.forEach(AnimatedGraphicComponent::stopAnimation);
+        });
+    }
+
+    @Override
+    public void pause() {
+        this.getCurrentWave().ifPresent(wave -> {
+            wave.pause();
+            this.waypoints.forEach(AnimatedGraphicComponent::pauseAnimation);
+        });
+    }
+
+    @Override
+    public void changeSpeed(double coeff) {
+        this.getCurrentWave().ifPresent(wave -> wave.changeSpeed(coeff));
+    }
+
+    public boolean isOver() {
+        return this.getCurrentWave().isPresent();
     }
 }
