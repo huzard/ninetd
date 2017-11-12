@@ -19,4 +19,12 @@ public interface GameConstants {
     String WAVE_PATTERN             = String.format("\\d+%s(?i)(.+)%s\\d+%s\\d+%s\\d+", DATA_SEPARATOR, DATA_SEPARATOR, DATA_SEPARATOR, DATA_SEPARATOR);
     Pattern PATH_LIST_PATTERN       = Pattern.compile(String.format("%s%s(%s%s)+%s", PATH_PATTERN, LIST_SEPARATOR, PATH_PATTERN, LIST_SEPARATOR, PATH_PATTERN));
     Pattern WAVE_LIST_PATTERN       = Pattern.compile(String.format("%s(%s%s)*", WAVE_PATTERN, LIST_SEPARATOR, WAVE_PATTERN));
+
+    char WALL_TILE                  = '#';
+    char PATH_TILE                  = '.';
+
+    char NORTH_DIR                  = 'N';
+    char EAST_DIR                   = 'E';
+    char SOUTH_DIR                  = 'S';
+    char WEST_DIR                   = 'W';
 }

@@ -2,6 +2,7 @@ package com.nine.td.game.graphics.map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.nine.td.GameConstants;
 import com.nine.td.GamePaths;
 import com.nine.td.game.graphics.Components;
 import com.nine.td.game.graphics.GraphicComponent;
@@ -67,18 +68,21 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             IntStream
                     .range(0, rows)
                     .forEach(i -> IntStream.range(0, columns).forEach(j -> {
+                        Position position = calibrate(scale, grid, j, i);
+
                         GraphicComponent component = Components.get(
                                 this.grid[i][j],
                                 this.scale,
-                                calibrate(this.scale, this.grid, j, i)
+                                position
                         );
 
                         ImageView render = component.render();
-                        Position calibrate = calibrate(scale, grid, j, i);
 
-                        //no need to check for unit presence, mouse click is intercepted on the new created unit frame
-                        //once it's set
-                        render.setOnMouseClicked(event -> addUnit(new BasicUnit(calibrate)));
+                        if(this.grid[i][j] == GameConstants.WALL_TILE) {
+                            //no need to check for unit presence, mouse click is intercepted on the new created unit frame once it's set
+                            render.setOnMouseClicked(event -> addUnit(new BasicUnit(position)));
+                        }
+
                         this.mapRendering.getChildren().add(render);
                     }));
 
@@ -255,6 +259,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
         this.getCurrentWave().ifPresent(wave -> {
             if(this.enemies.getChildren().isEmpty()) {
                 this.enemies.getChildren().setAll(wave.get().stream().map(Target::render).collect(Collectors.toList()));
+                this.units.forEach(unit -> wave.get().forEach(target -> target.add(unit)));
             }
 
             if(this.waypointsGroup.getChildren().isEmpty()) {
@@ -264,10 +269,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             wave.start();
 
             this.waypoints.forEach(Engine::start);
-            this.units.forEach(unit -> {
-                wave.get().forEach(target -> target.add(unit));
-                unit.start();
-            });
+            this.units.forEach(Engine::start);
         });
     }
 

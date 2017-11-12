@@ -14,12 +14,12 @@ public final class Components {
         GraphicComponent graphicComponent = new StaticGraphicComponent(GamePaths.SPRITES.resolve("null.png"), scale);
 
         switch(code) {
-            case '#' : graphicComponent = new StaticGraphicComponent(GamePaths.SPRITES.resolve("tile.png"), scale); break;
-            case '.' : graphicComponent = new StaticGraphicComponent(GamePaths.SPRITES.resolve("path.png"), scale); break;
-            case 'N' : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("north"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
-            case 'E' : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("east"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
-            case 'S' : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("south"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
-            case 'W' : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("west"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
+            case GameConstants.WALL_TILE    : graphicComponent = new StaticGraphicComponent(GamePaths.SPRITES.resolve("tile.png"), scale); break;
+            case GameConstants.PATH_TILE    : graphicComponent = new StaticGraphicComponent(GamePaths.SPRITES.resolve("path.png"), scale); break;
+            case GameConstants.NORTH_DIR    : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("north"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
+            case GameConstants.EAST_DIR     : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("east"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
+            case GameConstants.SOUTH_DIR    : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("south"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
+            case GameConstants.WEST_DIR     : graphicComponent = new AnimatedGraphicComponent(GamePaths.SPRITES.resolve("west"), scale, GameConstants.ANIMATION_WAYPOINT_SPEED); break;
         }
 
         graphicComponent.setPosition(Position.nonNull(position));
