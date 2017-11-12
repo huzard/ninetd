@@ -2,8 +2,10 @@ package com.nine.td.game.path;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.nine.td.GameConstants;
 import com.nine.td.game.playable.*;
 import com.nine.td.game.playable.Observer;
+import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
@@ -15,9 +17,12 @@ import java.util.stream.Collectors;
 
 public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVariableSpeed {
     private Timeline startScheduler;
+
     private final List<Target> targets = new CopyOnWriteArrayList<>();
     private final List<Runnable> onWaveUpdate = new LinkedList<>();
     private final List<Path> paths = new LinkedList<>();
+
+    private final Deque<Target> targetsToStart;
 
     public Wave(List<Target> targets, List<Path> paths) {
         Preconditions.checkArgument(targets != null, "null targets");
@@ -26,8 +31,8 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
         Preconditions.checkArgument(paths.stream().allMatch(Path::isValid), "invalid paths definition");
 
         this.paths.addAll(paths.stream().filter(Objects::nonNull).collect(Collectors.toList()));
-
         this.targets.addAll(targets.stream().filter(Objects::nonNull).collect(Collectors.toList()));
+        this.targetsToStart = Lists.newLinkedList(this.targets);
 
         this.targets.forEach(new Consumer<Target>() {
             int currentPath = 0;
@@ -39,7 +44,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
             }
         });
 
-        this.restartScheduler();
+        this.restartScheduler(GameConstants.START_WAVE_BASIC_SPEED);
     }
 
     @Override
@@ -55,7 +60,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
 
     @Override
     public void stop() {
-        this.restartScheduler();
+        this.restartScheduler(GameConstants.START_WAVE_BASIC_SPEED);
         this.targets.forEach(Engine::stop);
     }
 
@@ -91,6 +96,8 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
     @Override
     public void changeSpeed(double coeff) {
         this.targets.forEach(target -> target.changeSpeed(coeff));
+        this.restartScheduler(GameConstants.START_WAVE_BASIC_SPEED / coeff);
+        this.startScheduler.play();
     }
 
     public void onWaveUpdate(Runnable runnable) {
@@ -103,14 +110,19 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
         return Collections.unmodifiableList(this.paths);
     }
 
-    private void restartScheduler() {
+    private void restartScheduler(double time) {
         if(this.startScheduler != null) {
             this.startScheduler.stop();
         }
 
-        Deque<Target> targetsToStart = Lists.newLinkedList(this.targets);
+        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(time), event -> {
+            if(this.targetsToStart.isEmpty()) {
+                this.startScheduler.stop();
+            } else {
+                this.paths.forEach(path -> Optional.ofNullable(this.targetsToStart.poll()).ifPresent(Engine::start));
+            }
+        }));
 
-        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(500L), event -> targetsToStart.poll().start()));
-        this.startScheduler.setCycleCount(targetsToStart.size());
+        this.startScheduler.setCycleCount(Animation.INDEFINITE);
     }
 }

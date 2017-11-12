@@ -8,7 +8,7 @@ import com.nine.td.game.playable.Target;
  */
 public class BasicUnit extends Unit {
     public BasicUnit(Position position) {
-        super(position, 10, 0.2, 5);
+        super(position, 75, 950, 15);
     }
 
     @Override

@@ -41,6 +41,7 @@ public class StatusBar implements StatusBarDisplay {
     public void setMap(Map map) {
         this.map = Objects.requireNonNull(map, "null map");
         this.wavesSize = this.map.getWaves().size();
+        this.update();
     }
 
     @Override

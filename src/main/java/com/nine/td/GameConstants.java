@@ -3,9 +3,11 @@ package com.nine.td;
 import java.util.regex.Pattern;
 
 public interface GameConstants {
-    int ANIMATION_TARGET_SPEED      = 40;
-    int ANIMATION_WAYPOINT_SPEED    = 250;
+    double ANIMATION_TARGET_SPEED   = 40d;
+    double ANIMATION_WAYPOINT_SPEED = 250d;
+    double START_WAVE_BASIC_SPEED   = 500d;
     int REQUIRED_SIZE               = 24;
+
     String DEFAULT_STYLE            = "Par défaut";
     String MAP_DEFINITION           = "setup.txt";
     String PROPERTIES_DEFINITION    = "properties.properties";

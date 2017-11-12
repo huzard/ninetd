@@ -33,7 +33,9 @@ public class Navigation implements NavigationDisplay {
     private final Button decelerate = new Button("", new FontIcon(FontAwesome.ANGLE_DOUBLE_LEFT));
     private double currentSpeed = 1.0;
 
-    public Navigation() {}
+    public Navigation() {
+        this.normalSpeed();
+    }
 
     @Override
     public Node render() {
@@ -42,17 +44,29 @@ public class Navigation implements NavigationDisplay {
             this.pause.setOnAction(event -> Game.getInstance().pause());
             this.stop.setOnAction(event -> Game.getInstance().reload());
 
-            this.accelerate.setOnAction(event -> Game.getInstance().changeSpeed(this.currentSpeed = Double.max(this.currentSpeed *= 2, 4.0)));
             this.normal.setOnAction(event -> Game.getInstance().changeSpeed(this.currentSpeed = 1.0));
-            this.decelerate.setOnAction(event -> Game.getInstance().changeSpeed(this.currentSpeed = Double.min(this.currentSpeed /= 2, 0.25)));
 
-            Game.getInstance().onStart(()   -> this.disableNodes(this.play, this.mapList));
-            Game.getInstance().onPause(()   -> this.disableNodes(this.pause, this.mapList, this.decelerate, this.accelerate, this.normal));
-            Game.getInstance().onStop(()    -> {
-                this.disableNodes(this.pause, this.mapList, this.stop, this.decelerate, this.accelerate, this.normal);
-                this.currentSpeed = 1.0;
+            this.accelerate.setOnAction(event -> {
+                if(this.currentSpeed < 1.0) {
+                    this.normalSpeed();
+                }
+                Game.getInstance().changeSpeed(this.currentSpeed = Double.min(this.currentSpeed *= 2, 4.0));
             });
-            Game.getInstance().onEnded(()  -> this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
+
+            this.decelerate.setOnAction(event -> {
+                if(this.currentSpeed > 1.0) {
+                    this.normalSpeed();
+                }
+                Game.getInstance().changeSpeed(this.currentSpeed = Double.max(this.currentSpeed /= 2, 0.25));
+            });
+
+            Game.getInstance().addGameEventHandler(Game.GameEvent.START, () -> this.disableNodes(this.play, this.mapList));
+            Game.getInstance().addGameEventHandler(Game.GameEvent.PAUSE, () -> this.disableNodes(this.pause, this.mapList, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().addGameEventHandler(Game.GameEvent.ENDED, () -> this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().addGameEventHandler(Game.GameEvent.STOP, () -> {
+                this.normalSpeed();
+                this.disableNodes(this.pause, this.mapList, this.stop, this.decelerate, this.accelerate, this.normal);
+            });
 
             this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal);
 
@@ -72,6 +86,10 @@ public class Navigation implements NavigationDisplay {
         }
 
         return this.root;
+    }
+
+    private void normalSpeed() {
+        this.currentSpeed = 1.0;
     }
 
     private void disableNodes(Node ... nodes) {

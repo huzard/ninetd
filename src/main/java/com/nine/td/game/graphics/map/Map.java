@@ -12,10 +12,12 @@ import com.nine.td.game.path.WayPoint;
 import com.nine.td.game.playable.Engine;
 import com.nine.td.game.playable.HasVariableSpeed;
 import com.nine.td.game.playable.Target;
+import com.nine.td.game.playable.unit.BasicUnit;
+import com.nine.td.game.playable.unit.Unit;
 import com.nine.td.game.ui.HasRendering;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.canvas.Canvas;
+import javafx.scene.image.ImageView;
 import javafx.scene.transform.Scale;
 
 import java.io.File;
@@ -41,11 +43,14 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
     private final Scale scale;
     private final Properties metaProperties;
 
-    private Canvas drawArea;
-
     private final List<GraphicComponent> waypoints = new LinkedList<>();
+
+    private final Group mapRendering = new Group();
     private final Group enemies = new Group();
     private final Group waypointsGroup = new Group();
+    private final Group unitsGroup = new Group();
+
+    private final List<Unit> units = new LinkedList<>();
 
     private Map(String name, Scale scale) {
         this.scale = scale;
@@ -59,30 +64,25 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             int rows = this.grid.length;
             int columns = this.grid[0].length;
 
-            double canvasWidth = REQUIRED_SIZE * this.scale.getX() * columns;
-            double canvasHeight = REQUIRED_SIZE * this.scale.getY() * rows;
-
-            this.drawArea = new Canvas(canvasWidth, canvasHeight);
-
             IntStream
                     .range(0, rows)
                     .forEach(i -> IntStream.range(0, columns).forEach(j -> {
                         GraphicComponent component = Components.get(
                                 this.grid[i][j],
                                 this.scale,
-                                new Position(j * (this.drawArea.getWidth() / columns), i * (this.drawArea.getHeight() / rows))
+                                calibrate(this.scale, this.grid, j, i)
                         );
 
-                        this.drawArea
-                                .getGraphicsContext2D()
-                                .drawImage(
-                                        component.render().getImage(),
-                                        component.getPosition().getX(),
-                                        component.getPosition().getY()
-                                );
+                        ImageView render = component.render();
+                        Position calibrate = calibrate(scale, grid, j, i);
+
+                        //no need to check for unit presence, mouse click is intercepted on the new created unit frame
+                        //once it's set
+                        render.setOnMouseClicked(event -> addUnit(new BasicUnit(calibrate)));
+                        this.mapRendering.getChildren().add(render);
                     }));
 
-            this.root = new Group(this.drawArea, this.enemies, this.waypointsGroup);
+            this.root = new Group(this.mapRendering, this.enemies, this.waypointsGroup, this.unitsGroup);
         }
 
         return this.root;
@@ -136,11 +136,8 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
         this.waypointsGroup.getChildren().clear();
         paths.forEach(path -> Stream.concat(Stream.of(path.getStart(), path.getEnd()), path.getWayPoints().stream()).forEach(wayPoint -> {
             GraphicComponent image = Components.get(wayPoint.getDirection().charCode(), this.scale, wayPoint.getPosition());
-            Group node = new Group(image.render());
-            node.relocate(image.getPosition().getX(), image.getPosition().getY());
-
             this.waypoints.add(image);
-            this.waypointsGroup.getChildren().add(node);
+            this.waypointsGroup.getChildren().add(image.render());
         }));
     }
 
@@ -219,15 +216,6 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
     }
 
     private static List<com.nine.td.game.path.Path> parsePaths(List<String> pathsDefinition, Scale scale, char[][] grid) {
-        double scaleX = scale.getX();
-        double scaleY = scale.getY();
-
-        int rows = grid.length;
-        int columns = grid[0].length;
-
-        double canvasWidth  = REQUIRED_SIZE * scaleX * columns;
-        double canvasHeight = REQUIRED_SIZE * scaleY * rows;
-
         Function<String, WayPoint> toWaypoint = wp -> {
             //format = x:y:[N/E/S/W]
             String[] wayPointDefinition = wp.split(DATA_SEPARATOR);
@@ -238,7 +226,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             Preconditions.checkState(x >= 0, "require positive x position for waypoint (found " + x + ")");
             Preconditions.checkState(y >= 0, "require positive y position for waypoint (found " + y + ")");
 
-            Position position = new Position(x * (canvasWidth / columns),y * (canvasHeight / rows));
+            Position position   = calibrate(scale, grid, x, y);
             Direction direction = Direction.get(wayPointDefinition[2].charAt(0));
 
             return new WayPoint(direction, position);
@@ -276,6 +264,10 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             wave.start();
 
             this.waypoints.forEach(Engine::start);
+            this.units.forEach(unit -> {
+                wave.get().forEach(target -> target.add(unit));
+                unit.start();
+            });
         });
     }
 
@@ -285,6 +277,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             Stream.of(this.enemies, this.waypointsGroup).forEach(group -> group.getChildren().clear());
             wave.stop();
             this.waypoints.forEach(Engine::stop);
+            this.units.forEach(Engine::stop);
         });
     }
 
@@ -293,15 +286,38 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
         this.getCurrentWave().ifPresent(wave -> {
             wave.pause();
             this.waypoints.forEach(Engine::pause);
+            this.units.forEach(Engine::pause);
         });
     }
 
     @Override
     public void changeSpeed(double coeff) {
-        this.getCurrentWave().ifPresent(wave -> wave.changeSpeed(coeff));
+        this.getCurrentWave().ifPresent(wave -> {
+            wave.changeSpeed(coeff);
+            this.units.forEach(unit -> unit.changeSpeed(coeff));
+        });
     }
 
     public boolean isOver() {
         return !this.getCurrentWave().isPresent();
+    }
+
+    private void addUnit(Unit unit) {
+        this.units.add(unit);
+        ImageView imageView = Components.get('u', this.scale, unit.getPosition()).render();
+        this.unitsGroup.getChildren().add(imageView);
+    }
+
+    private static Position calibrate(Scale scale, char[][] grid, int x, int y) {
+        double scaleX = scale.getX();
+        double scaleY = scale.getY();
+
+        int rows = grid.length;
+        int columns = grid[0].length;
+
+        double canvasWidth  = REQUIRED_SIZE * scaleX * columns;
+        double canvasHeight = REQUIRED_SIZE * scaleY * rows;
+
+        return new Position(x * (canvasWidth / columns),y * (canvasHeight / rows));
     }
 }

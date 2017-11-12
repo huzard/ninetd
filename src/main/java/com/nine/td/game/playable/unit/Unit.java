@@ -24,11 +24,11 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
 
     private final List<Target> targets = new ArrayList<>();
     private int range;
-    private double shootingRate;
+    private int shootingRate;
     private int power;
     private Timeline shootingTimer;
 
-    public Unit(Position position, int range, double shootingRate, int power) {
+    public Unit(Position position, int range, int shootingRate, int power) {
         this.position = position;
         this.range = range;
         this.shootingRate = shootingRate;
@@ -48,7 +48,7 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
 
     @Override
     public boolean add(Target target) {
-        return target != null && target.add(this) && this.targets.add(target);
+        return this.targets.add(target);
     }
 
     @Override
@@ -63,8 +63,12 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
 
     @Override
     public void notify(Target data) {
-        if(data.isDown() || (this.targets.contains(data) && !canReach(data))) {
-            remove(data);
+        if(data != null) {
+            if (!this.targets.contains(data) && canReach(data) && !data.isDown()) {
+                add(data);
+            } else if (this.targets.contains(data) && (!canReach(data) || data.isDown())) {
+                remove(data);
+            }
         }
     }
 
@@ -82,12 +86,13 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
     public void stop() {
         if(this.shootingTimer != null) {
             this.shootingTimer.stop();
+            this.targets.clear();
         }
     }
 
     @Override
     public void pause() {
-
+        this.shootingTimer.pause();
     }
 
     /**
@@ -107,7 +112,7 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
      * Récupère le temps d'attente entre deux exécution d'actions
      */
     private long delay() {
-        return MAX_DELAY - (long) (this.shootingRate * 1000);
+        return MAX_DELAY - (this.shootingRate > MAX_DELAY ? MAX_DELAY + 1 : this.shootingRate);
     }
 
     private boolean canReach(Target target) {

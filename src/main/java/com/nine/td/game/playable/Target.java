@@ -143,6 +143,7 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     }
 
     public void check() {
+        System.out.println("check : " + this);
         this.observers.forEach(unit -> unit.notify(this));
     }
 
@@ -193,5 +194,14 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
         }));
 
         this.movementTimeline.setCycleCount(Animation.INDEFINITE);
+    }
+
+    @Override
+    public String toString() {
+        return "Target{" +
+                "life=" + life +
+                ", shield=" + shield +
+                ", speed=" + speed +
+                '}';
     }
 }

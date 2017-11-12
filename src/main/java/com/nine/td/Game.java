@@ -107,9 +107,9 @@ public class Game implements Engine, HasVariableSpeed {
     }
 
     public void reload() {
-        this.trigger(GameEvent.ENDED);
         this.stop();
         this.setMap(this.getCurrentMap().getName());
+        this.trigger(GameEvent.ENDED);
     }
 
     @Override
@@ -158,8 +158,7 @@ public class Game implements Engine, HasVariableSpeed {
 
         this.mapPreview.getChildren().setAll(map.render());
         this.statusBar.setMap(map);
-        this.statusBar.update();
-        this.fireEvent();
+        this.resize();
     }
 
     private Map getMap(String mapName) {
@@ -193,7 +192,7 @@ public class Game implements Engine, HasVariableSpeed {
             );
         }
 
-        this.fireEvent();
+        this.resize();
     }
 
     private CssStyle getStyle(String styleName) {
@@ -210,25 +209,9 @@ public class Game implements Engine, HasVariableSpeed {
         System.exit(0);
     }
 
-    public void onStart(Runnable handler) {
-        this.addHandler(GameEvent.START, handler);
-    }
-
-    public void onPause(Runnable handler) {
-        this.addHandler(GameEvent.PAUSE, handler);
-    }
-
-    public void onStop(Runnable handler) {
-        this.addHandler(GameEvent.STOP, handler);
-    }
-
-    public void onEnded(Runnable handler) {
-        this.addHandler(GameEvent.ENDED, handler);
-    }
-
-    private void addHandler(GameEvent event, Runnable runnable) {
+    public void addGameEventHandler(GameEvent gameEvent, Runnable runnable) {
         if(runnable != null) {
-            this.eventHandlers.get(event).add(runnable);
+            this.eventHandlers.get(gameEvent).add(runnable);
         }
     }
 
@@ -236,13 +219,13 @@ public class Game implements Engine, HasVariableSpeed {
         this.eventHandlers.get(gameEvent).forEach(Runnable::run);
     }
 
-    private void fireEvent() {
+    private void resize() {
         if(this.gameSceneResizedEventHandler != null) {
             this.gameSceneResizedEventHandler.run();
         }
     }
 
-    enum GameEvent {
+    public enum GameEvent {
         START,
         PAUSE,
         STOP,

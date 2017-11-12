@@ -42,6 +42,9 @@ public abstract class GraphicComponent implements Engine, HasPosition, HasRender
 
     @Override
     public ImageView render() {
+        if(this.position != null) {
+            this.imgContainer.relocate(this.getPosition().getX(), this.getPosition().getY());
+        }
         return this.imgContainer;
     }
 

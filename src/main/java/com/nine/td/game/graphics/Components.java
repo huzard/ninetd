@@ -26,8 +26,4 @@ public final class Components {
 
         return graphicComponent;
     }
-
-    public static GraphicComponent get(char code, Scale scale) {
-        return get(code, scale, new Position(0, 0));
-    }
 }

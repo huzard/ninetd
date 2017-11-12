@@ -18,11 +18,11 @@ import java.util.stream.Collectors;
 
 public class AnimatedGraphicComponent extends GraphicComponent {
     private final List<Image> images;
-    private long timeAnimation;
+    private double timeAnimation;
     private Timeline animationTimeline = new Timeline();
     private int currentImg = 0;
 
-    public AnimatedGraphicComponent(Path supplier, Scale scale, long timeAnimation) {
+    public AnimatedGraphicComponent(Path supplier, Scale scale, double timeAnimation) {
         super(supplier, scale);
         this.images = this.loadImages();
         this.imgContainer.setImage(this.images.get(0));
