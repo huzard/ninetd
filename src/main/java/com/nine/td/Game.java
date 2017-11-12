@@ -1,7 +1,6 @@
 package com.nine.td;
 
 import com.nine.td.game.graphics.map.Map;
-import com.nine.td.game.path.Wave;
 import com.nine.td.game.playable.Engine;
 import com.nine.td.game.playable.HasVariableSpeed;
 import com.nine.td.game.ui.*;
@@ -14,7 +13,6 @@ import javafx.scene.layout.VBox;
 import java.nio.file.Files;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -89,6 +87,9 @@ public class Game implements Engine, HasVariableSpeed {
 
     @Override
     public void start() {
+        if(this.getCurrentMap().isOver()) {
+            this.reload();
+        }
         this.getCurrentMap().start();
         this.trigger(GameEvent.START);
     }
@@ -106,9 +107,9 @@ public class Game implements Engine, HasVariableSpeed {
     }
 
     public void reload() {
+        this.trigger(GameEvent.ENDED);
         this.stop();
         this.setMap(this.getCurrentMap().getName());
-        this.trigger(GameEvent.RELOAD);
     }
 
     @Override
@@ -144,14 +145,12 @@ public class Game implements Engine, HasVariableSpeed {
 
         map.getWaves().forEach(wave -> wave.onWaveUpdate(() -> {
             if(wave.get().isEmpty()) {
-                Optional<Wave> nextWave = map.nextWave();
+                stop();
+                map.loadNextWave();
+            }
 
-                if(nextWave.isPresent()) {
-                    this.mapPreview.getChildren().setAll(map.render());
-                    stop();
-                } else {
-                    reload();
-                }
+            if(!map.getCurrentWave().isPresent()) {
+                trigger(GameEvent.ENDED);
             }
 
             this.statusBar.update();
@@ -223,8 +222,8 @@ public class Game implements Engine, HasVariableSpeed {
         this.addHandler(GameEvent.STOP, handler);
     }
 
-    public void onReload(Runnable handler) {
-        this.addHandler(GameEvent.RELOAD, handler);
+    public void onEnded(Runnable handler) {
+        this.addHandler(GameEvent.ENDED, handler);
     }
 
     private void addHandler(GameEvent event, Runnable runnable) {
@@ -247,6 +246,6 @@ public class Game implements Engine, HasVariableSpeed {
         START,
         PAUSE,
         STOP,
-        RELOAD;
+        ENDED;
     }
 }

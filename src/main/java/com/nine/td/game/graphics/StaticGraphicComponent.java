@@ -11,4 +11,13 @@ public class StaticGraphicComponent extends GraphicComponent {
         Preconditions.checkArgument(!imgPath.toFile().isDirectory(), "static img referred through directory");
         this.imgContainer.setImage(this.loadImage(imgPath, scale));
     }
+
+    @Override
+    public void start() {}
+
+    @Override
+    public void stop() {}
+
+    @Override
+    public void pause() {}
 }

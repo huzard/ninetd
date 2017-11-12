@@ -31,6 +31,7 @@ public class Navigation implements NavigationDisplay {
     private final Button accelerate = new Button("", new FontIcon(FontAwesome.ANGLE_DOUBLE_RIGHT));
     private final Button normal = new Button("", new FontIcon(FontAwesome.ANGLE_RIGHT));
     private final Button decelerate = new Button("", new FontIcon(FontAwesome.ANGLE_DOUBLE_LEFT));
+    private double currentSpeed = 1.0;
 
     public Navigation() {}
 
@@ -41,14 +42,17 @@ public class Navigation implements NavigationDisplay {
             this.pause.setOnAction(event -> Game.getInstance().pause());
             this.stop.setOnAction(event -> Game.getInstance().reload());
 
-            this.accelerate.setOnAction(event -> Game.getInstance().changeSpeed(2));
-            this.normal.setOnAction(event -> Game.getInstance().changeSpeed(1.0));
-            this.decelerate.setOnAction(event -> Game.getInstance().changeSpeed(0.5));
+            this.accelerate.setOnAction(event -> Game.getInstance().changeSpeed(this.currentSpeed = Double.max(this.currentSpeed *= 2, 4.0)));
+            this.normal.setOnAction(event -> Game.getInstance().changeSpeed(this.currentSpeed = 1.0));
+            this.decelerate.setOnAction(event -> Game.getInstance().changeSpeed(this.currentSpeed = Double.min(this.currentSpeed /= 2, 0.25)));
 
             Game.getInstance().onStart(()   -> this.disableNodes(this.play, this.mapList));
             Game.getInstance().onPause(()   -> this.disableNodes(this.pause, this.mapList, this.decelerate, this.accelerate, this.normal));
-            Game.getInstance().onStop(()    -> this.disableNodes(this.pause, this.mapList, this.stop, this.decelerate, this.accelerate, this.normal));
-            Game.getInstance().onReload(()  -> this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
+            Game.getInstance().onStop(()    -> {
+                this.disableNodes(this.pause, this.mapList, this.stop, this.decelerate, this.accelerate, this.normal);
+                this.currentSpeed = 1.0;
+            });
+            Game.getInstance().onEnded(()  -> this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal));
 
             this.disableNodes(this.pause, this.stop, this.decelerate, this.accelerate, this.normal);
 

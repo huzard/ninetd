@@ -51,7 +51,7 @@ public class StatusBar implements StatusBarDisplay {
                 new Text("Map : " + this.map.getName()),
                 separator(),
                 new Text(
-                        !this.map.isOver() ? "Map over" :
+                        this.map.isOver() ? "Map over" :
 
                         String.format(
                                 "Wave %d/%d : %d enemies left",

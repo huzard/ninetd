@@ -3,6 +3,7 @@ package com.nine.td.game.graphics;
 import com.google.common.base.Preconditions;
 import com.nine.td.game.path.HasPosition;
 import com.nine.td.game.path.Position;
+import com.nine.td.game.playable.Engine;
 import com.nine.td.game.ui.HasRendering;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -13,7 +14,7 @@ import java.util.Objects;
 
 import static com.nine.td.GameConstants.REQUIRED_SIZE;
 
-public abstract class GraphicComponent implements HasPosition, HasRendering<ImageView> {
+public abstract class GraphicComponent implements Engine, HasPosition, HasRendering<ImageView> {
     protected final ImageView imgContainer = new ImageView();
     protected       Position position = new Position(0, 0);
     protected       Scale scale;

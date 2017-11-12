@@ -68,16 +68,19 @@ public class AnimatedGraphicComponent extends GraphicComponent {
         this.setAnimationTimeline(this.timeAnimation / coeff);
     }
 
-    public void startAnimation() {
+    @Override
+    public void start() {
         this.animationTimeline.play();
     }
 
-    public void pauseAnimation() {
-        this.animationTimeline.pause();
-    }
-
-    public void stopAnimation() {
+    @Override
+    public void stop() {
         this.animationTimeline.stop();
         this.currentImg = 0;
+    }
+
+    @Override
+    public void pause() {
+        this.animationTimeline.pause();
     }
 }

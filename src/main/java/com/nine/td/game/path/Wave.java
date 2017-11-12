@@ -14,15 +14,18 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVariableSpeed {
-    private final List<Target> targets = new CopyOnWriteArrayList<>();
     private Timeline startScheduler;
+    private final List<Target> targets = new CopyOnWriteArrayList<>();
     private final List<Runnable> onWaveUpdate = new LinkedList<>();
+    private final List<Path> paths = new LinkedList<>();
 
     public Wave(List<Target> targets, List<Path> paths) {
         Preconditions.checkArgument(targets != null, "null targets");
         Preconditions.checkArgument(!targets.isEmpty(), "empty list of targets");
         Preconditions.checkArgument(paths != null, "paths null");
         Preconditions.checkArgument(paths.stream().allMatch(Path::isValid), "invalid paths definition");
+
+        this.paths.addAll(paths.stream().filter(Objects::nonNull).collect(Collectors.toList()));
 
         this.targets.addAll(targets.stream().filter(Objects::nonNull).collect(Collectors.toList()));
 
@@ -74,7 +77,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
 
     @Override
     public List<Target> get() {
-        return this.targets;
+        return Collections.unmodifiableList(this.targets);
     }
 
     @Override
@@ -94,6 +97,10 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
         if(runnable != null) {
             this.onWaveUpdate.add(runnable);
         }
+    }
+
+    public List<Path> getPaths() {
+        return Collections.unmodifiableList(this.paths);
     }
 
     private void restartScheduler() {

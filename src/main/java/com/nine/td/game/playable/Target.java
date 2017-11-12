@@ -63,26 +63,27 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
         Preconditions.checkState(this.path != null, "null path");
         Preconditions.checkState(this.path.isValid(), "invalid path");
 
+        super.start();
+
         if(this.position == null) {
             this.position = this.path.getStart().getPosition();
             this.direction = this.path.getStart().getDirection();
         }
 
         this.movementTimeline.play();
-        this.startAnimation();
     }
 
     @Override
     public void stop() {
+        super.stop();
         this.imgContainer.setVisible(false);
         this.movementTimeline.stop();
-        this.stopAnimation();
     }
 
     @Override
     public void pause() {
+        super.pause();
         this.movementTimeline.pause();
-        this.pauseAnimation();
     }
 
     @Override
