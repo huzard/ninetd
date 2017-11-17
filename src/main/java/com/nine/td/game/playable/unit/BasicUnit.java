@@ -16,7 +16,7 @@ public class BasicUnit extends Unit {
         System.out.println(this + " : shooting target");
 
         if(target.getShield() > 0) {
-            int difference = target.getShield() - this.getPower();
+            int difference = target.getShield() - this.power;
 
             if(difference > target.getShield()) {
                 int remain = difference - target.getShield();
@@ -25,7 +25,7 @@ public class BasicUnit extends Unit {
                 target.setShield(difference);
             }
         } else {
-            target.setLife(target.getLife() - this.getPower());
+            target.setLife(target.getLife() - this.power);
         }
     }
 }

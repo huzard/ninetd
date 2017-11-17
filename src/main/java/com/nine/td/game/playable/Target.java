@@ -10,9 +10,9 @@ import javafx.animation.Timeline;
 import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * Représente une cible
@@ -24,7 +24,7 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     private         int speed;
     protected       Path path;
     private         Timeline movementTimeline;
-    private final   List<Observer<Target>> observers = new CopyOnWriteArrayList<>();
+    private final   Set<Observer<Target>> observers = new CopyOnWriteArraySet<>();
     private         boolean hasReachedEnd = false;
 
     public Target(java.nio.file.Path imgPath, Scale scale, int life, int shield, int speed) {
@@ -97,7 +97,7 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     }
 
     @Override
-    public List<Observer<Target>> get() {
+    public Set<Observer<Target>> get() {
         return observers;
     }
 

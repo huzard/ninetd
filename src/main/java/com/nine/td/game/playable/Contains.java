@@ -1,9 +1,9 @@
 package com.nine.td.game.playable;
 
-import java.util.List;
+import java.util.Set;
 
 public interface Contains<P> {
     boolean add(P data);
     boolean remove(P data);
-    List<P> get();
+    Set<P> get();
 }

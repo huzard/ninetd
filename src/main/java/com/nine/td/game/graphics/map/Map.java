@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import com.nine.td.GameConstants;
 import com.nine.td.GamePaths;
 import com.nine.td.game.graphics.Components;
+import com.nine.td.game.graphics.DrawTools;
 import com.nine.td.game.graphics.GraphicComponent;
 import com.nine.td.game.path.Direction;
 import com.nine.td.game.path.Position;
@@ -50,6 +51,9 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
     private final Group enemies = new Group();
     private final Group waypointsGroup = new Group();
     private final Group unitsGroup = new Group();
+    private final Group overlay = new Group();
+
+    private final DrawTools drawTools;
 
     private final List<Unit> units = new LinkedList<>();
 
@@ -57,6 +61,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
         this.scale = scale;
         this.name = name;
         this.metaProperties = new Properties();
+        this.drawTools = new DrawTools(scale);
     }
 
     @Override
@@ -86,7 +91,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
                         this.mapRendering.getChildren().add(render);
                     }));
 
-            this.root = new Group(this.mapRendering, this.enemies, this.waypointsGroup, this.unitsGroup);
+            this.root = new Group(this.mapRendering, this.enemies, this.waypointsGroup, this.overlay, this.unitsGroup);
         }
 
         return this.root;
@@ -269,7 +274,10 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             wave.start();
 
             this.waypoints.forEach(Engine::start);
-            this.units.forEach(Engine::start);
+            this.units.forEach(unit -> {
+                wave.get().forEach(target -> target.add(unit));
+                unit.start();
+            });
         });
     }
 
@@ -279,7 +287,11 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
             Stream.of(this.enemies, this.waypointsGroup).forEach(group -> group.getChildren().clear());
             wave.stop();
             this.waypoints.forEach(Engine::stop);
-            this.units.forEach(Engine::stop);
+            this.units.forEach(unit -> {
+                unit.get().forEach(target -> target.get().remove(unit));
+                unit.get().clear();
+                unit.stop();
+            });
         });
     }
 
@@ -305,9 +317,17 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
     }
 
     private void addUnit(Unit unit) {
-        this.units.add(unit);
+
+        Group overlayCircle = this.drawTools.createRangeCircle(unit);
+
         ImageView imageView = Components.get('u', this.scale, unit.getPosition()).render();
+        imageView.setOnMouseEntered(event -> overlay.getChildren().add(overlayCircle));
+        imageView.setOnMouseExited(event -> overlay.getChildren().remove(overlayCircle));
         this.unitsGroup.getChildren().add(imageView);
+
+        this.units.add(unit);
+        this.getCurrentWave().ifPresent(wave -> wave.get().forEach(target -> target.add(unit)));
+        unit.start();
     }
 
     private static Position calibrate(Scale scale, char[][] grid, int x, int y) {

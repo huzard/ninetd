@@ -9,23 +9,23 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Représente une unité de combat
  */
 public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, Engine {
-    private static final long MAX_DELAY = 1400L;
+    private static final long MAX_DELAY = 10000;
 
     protected Position position;
 
-    private final List<Target> targets = new ArrayList<>();
-    private int range;
-    private int shootingRate;
-    private int power;
+    private final Set<Target> targets = new HashSet<>();
+    protected int range;
+    protected int shootingRate;
+    protected int power;
     private Timeline shootingTimer;
 
     public Unit(Position position, int range, int shootingRate, int power) {
@@ -57,7 +57,7 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
     }
 
     @Override
-    public List<Target> get() {
+    public Set<Target> get() {
         return targets;
     }
 
@@ -79,6 +79,7 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
 
     @Override
     public void start() {
+        stop();
         this.shootingTimer.play();
     }
 
@@ -86,13 +87,35 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
     public void stop() {
         if(this.shootingTimer != null) {
             this.shootingTimer.stop();
-            this.targets.clear();
         }
     }
 
     @Override
     public void pause() {
         this.shootingTimer.pause();
+    }
+
+    @Override
+    public void changeSpeed(double coeff) {
+        double speed = this.shootingRate / coeff;
+        System.out.println(speed);
+        this.setTimeline(MAX_DELAY - (speed > MAX_DELAY ? MAX_DELAY - 1 : speed));
+        start();
+    }
+
+    private void setTimeline(double speed) {
+        Preconditions.checkArgument(speed > 0, "require positive speed (found " + speed + ")");
+
+        if(this.shootingTimer != null) {
+            this.shootingTimer.stop();
+        }
+
+        this.shootingTimer = new Timeline(new KeyFrame(Duration.millis(speed), irrelevant -> getNearestTarget().ifPresent(target -> {
+            shoot(target);
+            target.check();
+        })));
+
+        this.shootingTimer.setCycleCount(Animation.INDEFINITE);
     }
 
     /**
@@ -108,53 +131,11 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
                 .min((t1, t2) -> Double.compare(t1.getPosition().distanceWith(this.getPosition()), t2.getPosition().distanceWith(this.position)));
     }
 
-    /**
-     * Récupère le temps d'attente entre deux exécution d'actions
-     */
-    private long delay() {
-        return MAX_DELAY - (this.shootingRate > MAX_DELAY ? MAX_DELAY + 1 : this.shootingRate);
-    }
-
     private boolean canReach(Target target) {
         return this.position.distanceWith(target.getPosition()) <= this.range;
     }
 
     public int getRange() {
-        return this.range;
-    }
-
-    public Unit setRange(int range) {
-        this.range = Integer.max(0, range);
-        return this;
-    }
-
-    public int getPower() {
-        return this.power;
-    }
-
-    public Unit setPower(int power) {
-        this.power = Integer.max(0, power);
-        return this;
-    }
-
-    @Override
-    public void changeSpeed(double coeff) {
-        this.setTimeline(this.shootingRate / coeff);
-        start();
-    }
-
-    private void setTimeline(double speed) {
-        Preconditions.checkArgument(speed > 0, "require positive speed");
-
-        if(this.shootingTimer != null) {
-            this.shootingTimer.stop();
-        }
-
-        this.shootingTimer = new Timeline(new KeyFrame(Duration.millis(this.delay()), irrelevant -> getNearestTarget().ifPresent(target -> {
-            shoot(target);
-            target.check();
-        })));
-
-        this.shootingTimer.setCycleCount(Animation.INDEFINITE);
+        return range;
     }
 }

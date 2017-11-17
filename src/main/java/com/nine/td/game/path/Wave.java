@@ -11,14 +11,14 @@ import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVariableSpeed {
     private Timeline startScheduler;
 
-    private final List<Target> targets = new CopyOnWriteArrayList<>();
+    private final Set<Target> targets = new CopyOnWriteArraySet<>();
     private final List<Runnable> onWaveUpdate = new LinkedList<>();
     private final List<Path> paths = new LinkedList<>();
 
@@ -81,8 +81,8 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
     }
 
     @Override
-    public List<Target> get() {
-        return Collections.unmodifiableList(this.targets);
+    public Set<Target> get() {
+        return Collections.unmodifiableSet(this.targets);
     }
 
     @Override
