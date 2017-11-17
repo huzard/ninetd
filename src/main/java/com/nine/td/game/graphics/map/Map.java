@@ -4,7 +4,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.nine.td.GameConstants;
 import com.nine.td.GamePaths;
-import com.nine.td.game.graphics.Components;
 import com.nine.td.game.graphics.DrawTools;
 import com.nine.td.game.graphics.GraphicComponent;
 import com.nine.td.game.path.Direction;
@@ -75,20 +74,20 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
                     .forEach(i -> IntStream.range(0, columns).forEach(j -> {
                         Position position = calibrate(scale, grid, j, i);
 
-                        GraphicComponent component = Components.get(
-                                this.grid[i][j],
-                                this.scale,
-                                position
-                        );
+                        GraphicComponent graphicComponent = this.drawTools.drawNull(position);
 
-                        ImageView render = component.render();
+                        switch(this.grid[i][j]) {
+                            case GameConstants.PATH_TILE :
+                                graphicComponent = this.drawTools.drawPath(position);
+                                break;
 
-                        if(this.grid[i][j] == GameConstants.WALL_TILE) {
-                            //no need to check for unit presence, mouse click is intercepted on the new created unit frame once it's set
-                            render.setOnMouseClicked(event -> addUnit(new BasicUnit(position)));
+                            case GameConstants.WALL_TILE :
+                                graphicComponent = this.drawTools.drawTile(position);
+                                graphicComponent.render().setOnMouseClicked(event -> addUnit(new BasicUnit(position)));
+                                break;
                         }
 
-                        this.mapRendering.getChildren().add(render);
+                        this.mapRendering.getChildren().add(graphicComponent.render());
                     }));
 
             this.root = new Group(this.mapRendering, this.enemies, this.waypointsGroup, this.overlay, this.unitsGroup);
@@ -144,7 +143,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
         this.waypoints.clear();
         this.waypointsGroup.getChildren().clear();
         paths.forEach(path -> Stream.concat(Stream.of(path.getStart(), path.getEnd()), path.getWayPoints().stream()).forEach(wayPoint -> {
-            GraphicComponent image = Components.get(wayPoint.getDirection().charCode(), this.scale, wayPoint.getPosition());
+            GraphicComponent image = this.drawTools.draw(wayPoint);
             this.waypoints.add(image);
             this.waypointsGroup.getChildren().add(image.render());
         }));
@@ -320,7 +319,8 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
 
         Group overlayCircle = this.drawTools.createRangeCircle(unit);
 
-        ImageView imageView = Components.get('u', this.scale, unit.getPosition()).render();
+        ImageView imageView = this.drawTools.draw(unit).render();
+
         imageView.setOnMouseEntered(event -> overlay.getChildren().add(overlayCircle));
         imageView.setOnMouseExited(event -> overlay.getChildren().remove(overlayCircle));
         this.unitsGroup.getChildren().add(imageView);
