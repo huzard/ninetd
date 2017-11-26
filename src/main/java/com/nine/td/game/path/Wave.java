@@ -96,6 +96,7 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
     @Override
     public void changeSpeed(double coeff) {
         this.targets.forEach(target -> target.changeSpeed(coeff));
+
         this.restartScheduler(GameConstants.START_WAVE_BASIC_SPEED / coeff);
         this.startScheduler.play();
     }
@@ -115,13 +116,14 @@ public class Wave implements Engine, Contains<Target>, Observer<Target>, HasVari
             this.startScheduler.stop();
         }
 
-        this.startScheduler = new Timeline(new KeyFrame(Duration.millis(time), event -> {
-            if(this.targetsToStart.isEmpty()) {
-                this.startScheduler.stop();
-            } else {
-                this.paths.forEach(path -> Optional.ofNullable(this.targetsToStart.poll()).ifPresent(Engine::start));
-            }
-        }));
+        this.startScheduler = new Timeline(
+                new KeyFrame(Duration.ZERO, event -> {
+                    if(this.targetsToStart.isEmpty()) {
+                        this.startScheduler.stop();
+                    } else {
+                        this.paths.forEach(path -> Optional.ofNullable(this.targetsToStart.poll()).ifPresent(Engine::start));
+                    }
+                }), new KeyFrame(Duration.millis(time)));
 
         this.startScheduler.setCycleCount(Animation.INDEFINITE);
     }

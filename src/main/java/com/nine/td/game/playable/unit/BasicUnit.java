@@ -6,15 +6,13 @@ import com.nine.td.game.playable.Target;
 /**
  * Implémentation basique d'une unitée
  */
-public class BasicUnit extends Unit {
+public class BasicUnit extends SingleTargetShooter {
     public BasicUnit(Position position) {
-        super(position, 75, 950, 15);
+        super(position, 75, 250, 15);
     }
 
     @Override
     public void shoot(Target target) {
-        System.out.println(this + " : shooting target");
-
         if(target.getShield() > 0) {
             int difference = target.getShield() - this.power;
 

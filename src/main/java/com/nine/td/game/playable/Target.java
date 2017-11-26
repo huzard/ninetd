@@ -27,8 +27,15 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     private final   Set<Observer<Target>> observers = new CopyOnWriteArraySet<>();
     private         boolean hasReachedEnd = false;
 
+    private final int maxShield;
+    private final int maxLife;
+
     public Target(java.nio.file.Path imgPath, Scale scale, int life, int shield, int speed) {
         super(imgPath, scale, GameConstants.ANIMATION_TARGET_SPEED);
+
+        this.maxShield = shield;
+        this.maxLife = life;
+
         this.setLife(life);
         this.setShield(shield);
         this.setSpeed(speed);
@@ -116,7 +123,8 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     }
 
     public Target setLife(int life) {
-        this.life = Integer.max(0, life);
+        this.life = Integer.min(this.life = Integer.max(0, life), this.maxLife);
+        this.changeOpacity();
         return this;
     }
 
@@ -125,7 +133,8 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     }
 
     public Target setShield(int shield) {
-        this.shield = Integer.max(0, shield);
+        this.shield = Integer.min(this.shield = Integer.max(0, shield), this.maxShield);
+        this.changeOpacity();
         return this;
     }
 
@@ -139,11 +148,10 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
     }
 
     public boolean isDown() {
-        return this.life <= 0;
+        return this.getCurrentHealth() <= 0;
     }
 
     public void check() {
-        System.out.println("check : " + this);
         this.observers.forEach(unit -> unit.notify(this));
     }
 
@@ -196,12 +204,11 @@ public class Target extends AnimatedGraphicComponent implements HasPosition, Has
         this.movementTimeline.setCycleCount(Animation.INDEFINITE);
     }
 
-    @Override
-    public String toString() {
-        return "Target{" +
-                "life=" + life +
-                ", shield=" + shield +
-                ", speed=" + speed +
-                '}';
+    private void changeOpacity() {
+        this.imgContainer.setOpacity((double)this.getCurrentHealth() / (double)(this.maxLife + this.maxShield));
+    }
+
+    private int getCurrentHealth() {
+        return this.life + this.shield;
     }
 }

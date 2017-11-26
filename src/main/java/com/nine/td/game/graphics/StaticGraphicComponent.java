@@ -9,7 +9,7 @@ public class StaticGraphicComponent extends GraphicComponent {
     public StaticGraphicComponent(Path imgPath, Scale scale) {
         super(imgPath, scale);
         Preconditions.checkArgument(!imgPath.toFile().isDirectory(), "static img referred through directory");
-        this.imgContainer.setImage(this.loadImage(imgPath, scale));
+        this.imgContainer.setImage(this.drawTools.loadImage(imgPath));
     }
 
     @Override

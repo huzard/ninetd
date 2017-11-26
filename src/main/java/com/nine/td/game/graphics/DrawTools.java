@@ -6,9 +6,12 @@ import com.nine.td.game.path.Position;
 import com.nine.td.game.path.WayPoint;
 import com.nine.td.game.playable.unit.Unit;
 import javafx.scene.Group;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.transform.Scale;
+
+import static com.nine.td.GameConstants.REQUIRED_SIZE;
 
 public class DrawTools {
     private final Scale scale;
@@ -67,5 +70,15 @@ public class DrawTools {
         graphicComponent.setPosition(Position.nonNull(position));
 
         return graphicComponent;
+    }
+
+    public Image loadImage(java.nio.file.Path path) {
+        return new Image(
+                String.format("file:///%s", path),
+                REQUIRED_SIZE * this.scale.getX(),
+                REQUIRED_SIZE * this.scale.getY(),
+                false,
+                true
+        );
     }
 }

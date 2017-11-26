@@ -50,7 +50,6 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
     private final Group enemies = new Group();
     private final Group waypointsGroup = new Group();
     private final Group unitsGroup = new Group();
-    private final Group overlay = new Group();
 
     private final DrawTools drawTools;
 
@@ -90,7 +89,7 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
                         this.mapRendering.getChildren().add(graphicComponent.render());
                     }));
 
-            this.root = new Group(this.mapRendering, this.enemies, this.waypointsGroup, this.overlay, this.unitsGroup);
+            this.root = new Group(this.mapRendering, this.enemies, this.waypointsGroup, this.unitsGroup);
         }
 
         return this.root;
@@ -316,15 +315,13 @@ public final class Map implements HasRendering<Node>, Engine, HasVariableSpeed {
     }
 
     private void addUnit(Unit unit) {
-
+        Group unitGroup = new Group();
         Group overlayCircle = this.drawTools.createRangeCircle(unit);
-
         ImageView imageView = this.drawTools.draw(unit).render();
-
-        imageView.setOnMouseEntered(event -> overlay.getChildren().add(overlayCircle));
-        imageView.setOnMouseExited(event -> overlay.getChildren().remove(overlayCircle));
-        this.unitsGroup.getChildren().add(imageView);
-
+        imageView.setOnMouseEntered(event -> unitGroup.getChildren().add(0, overlayCircle));
+        imageView.setOnMouseExited(event -> unitGroup.getChildren().remove(overlayCircle));
+        unitGroup.getChildren().add(imageView);
+        this.unitsGroup.getChildren().add(unitGroup);
         this.units.add(unit);
         this.getCurrentWave().ifPresent(wave -> wave.get().forEach(target -> target.add(unit)));
         unit.start();

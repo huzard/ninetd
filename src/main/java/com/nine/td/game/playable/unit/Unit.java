@@ -10,8 +10,8 @@ import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -22,7 +22,7 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
 
     protected Position position;
 
-    private final Set<Target> targets = new HashSet<>();
+    protected final Set<Target> targets = new HashSet<>();
     protected int range;
     protected int shootingRate;
     protected int power;
@@ -53,7 +53,7 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
 
     @Override
     public boolean remove(Target target) {
-        return target != null && target.remove(this) && this.targets.remove(target);
+        return this.targets.remove(target);
     }
 
     @Override
@@ -64,9 +64,9 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
     @Override
     public void notify(Target data) {
         if(data != null) {
-            if (!this.targets.contains(data) && canReach(data) && !data.isDown()) {
+            if(!this.targets.contains(data) && canReach(data) && !data.isDown()) {
                 add(data);
-            } else if (this.targets.contains(data) && (!canReach(data) || data.isDown())) {
+            } else if(this.targets.contains(data) && (!canReach(data) || data.isDown())) {
                 remove(data);
             }
         }
@@ -98,9 +98,12 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
     @Override
     public void changeSpeed(double coeff) {
         double speed = this.shootingRate / coeff;
-        System.out.println(speed);
         this.setTimeline(MAX_DELAY - (speed > MAX_DELAY ? MAX_DELAY - 1 : speed));
         start();
+    }
+
+    public int getRange() {
+        return range;
     }
 
     private void setTimeline(double speed) {
@@ -110,32 +113,19 @@ public abstract class Unit implements HasPosition, Shooter, HasVariableSpeed, En
             this.shootingTimer.stop();
         }
 
-        this.shootingTimer = new Timeline(new KeyFrame(Duration.millis(speed), irrelevant -> getNearestTarget().ifPresent(target -> {
-            shoot(target);
-            target.check();
-        })));
+        this.shootingTimer = new Timeline(
+                new KeyFrame(
+                        Duration.millis(speed),
+                        e -> getTargets().forEach(target -> { shoot(target); target.check(); })
+                )
+        );
 
         this.shootingTimer.setCycleCount(Animation.INDEFINITE);
     }
 
-    /**
-     * Récupère la cible la plus proche et purge la liste des cibles trop loin
-     */
-    private Optional<Target> getNearestTarget() {
-        //On clean
-        this.targets.removeIf(target -> !canReach(target));
+    protected abstract List<Target> getTargets();
 
-        //On cherche la cible avec la distance la plus courte
-        return this.targets
-                .stream()
-                .min((t1, t2) -> Double.compare(t1.getPosition().distanceWith(this.getPosition()), t2.getPosition().distanceWith(this.position)));
-    }
-
-    private boolean canReach(Target target) {
+    boolean canReach(Target target) {
         return this.position.distanceWith(target.getPosition()) <= this.range;
-    }
-
-    public int getRange() {
-        return range;
     }
 }

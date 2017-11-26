@@ -26,13 +26,16 @@ public class MenuBar implements MenuBarDisplay {
     public Node render() {
         if(this.root == null) {
             //File menu
-            MenuItem newGame = new MenuItem("Nouveau jeu");
-            newGame.setOnAction(event -> Game.getInstance().reload());
-            MenuItem exit = new MenuItem("Quitter");
-            exit.setOnAction(event -> Game.exit());
+            Menu fileMenu = new Menu(
+                    "Fichier",
+                    null,
+                    this.createMenuItem("Nouveau jeu", event -> Game.getInstance().reload()),
+                    new SeparatorMenuItem(),
+                    this.createMenuItem("Quitter", event -> Game.exit())
+            );
 
             this.root = new javafx.scene.control.MenuBar(
-                new Menu("Fichier", null, newGame, new SeparatorMenuItem(), exit),
+                fileMenu,
                 this.themeSwitch
             );
         }
@@ -60,5 +63,11 @@ public class MenuBar implements MenuBarDisplay {
     @Override
     public void onThemeSwitch(EventHandler<ActionEvent> styleChangedHandler) {
         this.themeSwitch.getItems().forEach(item -> item.addEventHandler(ActionEvent.ACTION, styleChangedHandler));
+    }
+
+    private MenuItem createMenuItem(String text, EventHandler<ActionEvent> onClick) {
+        MenuItem item = new MenuItem(text);
+        item.setOnAction(onClick);
+        return item;
     }
 }

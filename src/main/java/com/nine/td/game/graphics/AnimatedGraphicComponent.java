@@ -12,7 +12,6 @@ import javafx.util.Duration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,44 +29,6 @@ public class AnimatedGraphicComponent extends GraphicComponent {
         this.setAnimationTimeline(this.timeAnimation);
     }
 
-    private List<Image> loadImages() {
-        List<Image> images = new LinkedList<>();
-
-        Preconditions.checkState(imgPath.toFile().exists(), "Invalid path to images : " + imgPath);
-
-        if(imgPath.toFile().isDirectory()) {
-            try {
-                images.addAll(Files.list(imgPath).map(p -> loadImage(p, scale)).collect(Collectors.toList()));
-            } catch(Exception e) {
-                return Collections.singletonList(this.loadImage(GamePaths.RESOURCES.resolve("null.png"), scale));
-            }
-        } else {
-            images.add(loadImage(imgPath, scale));
-        }
-
-        Preconditions.checkState(!images.isEmpty(), "Invalid path to images : " + imgPath);
-
-        return images;
-    }
-
-    private void setAnimationTimeline(double speed) {
-        Preconditions.checkArgument(speed > 0, "invalid speed");
-
-        if(this.animationTimeline != null) {
-            this.animationTimeline.stop();
-        }
-
-        this.animationTimeline = new Timeline(new KeyFrame(Duration.millis(speed), irrelevant -> {
-            this.imgContainer.imageProperty().setValue(this.images.get(this.currentImg++ % this.images.size()));
-        }));
-
-        this.animationTimeline.setCycleCount(Animation.INDEFINITE);
-    }
-
-    public void changeAnimationSpeed(double coeff) {
-        this.setAnimationTimeline(this.timeAnimation / coeff);
-    }
-
     @Override
     public void start() {
         this.animationTimeline.play();
@@ -82,5 +43,40 @@ public class AnimatedGraphicComponent extends GraphicComponent {
     @Override
     public void pause() {
         this.animationTimeline.pause();
+    }
+
+    private List<Image> loadImages() {
+        Preconditions.checkState(this.imgPath.toFile().exists(), "Invalid path to images : " + imgPath);
+
+        if(this.imgPath.toFile().isDirectory()) {
+            try {
+                return Files.list(this.imgPath).map(p -> this.drawTools.loadImage(p)).collect(Collectors.toList());
+            } catch(Exception e) {
+                return Collections.singletonList(this.drawTools.loadImage(GamePaths.RESOURCES.resolve("null.png")));
+            }
+        } else {
+            return Collections.singletonList(this.drawTools.loadImage(this.imgPath));
+        }
+    }
+
+    private void setAnimationTimeline(double speed) {
+        Preconditions.checkArgument(speed > 0, "invalid speed");
+
+        if(this.animationTimeline != null) {
+            this.animationTimeline.stop();
+        }
+
+        this.animationTimeline = new Timeline(
+                new KeyFrame(
+                        Duration.millis(speed),
+                        e -> this.imgContainer.imageProperty().setValue(this.images.get(this.currentImg++ % this.images.size()))
+                )
+        );
+
+        this.animationTimeline.setCycleCount(Animation.INDEFINITE);
+    }
+
+    protected void changeAnimationSpeed(double coeff) {
+        this.setAnimationTimeline(this.timeAnimation / coeff);
     }
 }
